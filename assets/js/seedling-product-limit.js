@@ -17,6 +17,35 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (!qtyInput || !variationIdInput) return;
 
+    // Минимальное значение, которое допускается в поле количества.
+    // Обновляется функцией checkAndUpdateQuantity.
+    let enforcedMin = 1;
+
+    // Хранит кнопку уменьшения, чтобы можно было снять обработчик при её замене.
+    let boundMinusBtn = null;
+
+    /**
+     * Обработчик ввода в поле количества.
+     * Следит за тем, чтобы значение не было меньше заданного минимума.
+     */
+    function handleQtyInput() {
+        if (parseInt(qtyInput.value || '0') < enforcedMin) {
+            qtyInput.value = enforcedMin;
+        }
+    }
+
+    /**
+     * Обработчик клика на кнопку уменьшения количества.
+     * После изменения значения проверяет соблюдение минимума.
+     */
+    function handleMinusClick() {
+        setTimeout(() => {
+            if (parseInt(qtyInput.value || '0') < enforcedMin) {
+                qtyInput.value = enforcedMin;
+            }
+        }, 100);
+    }
+
     /**
      * Получает количество выбранной вариации в корзине и
      * устанавливает минимально допустимое значение в поле ввода.
@@ -30,25 +59,22 @@ document.addEventListener('DOMContentLoaded', function () {
             .then(data => {
                 if (!data.success) return;
                 const alreadyInCart = data.data.quantity || 0;
-                const toAdd = Math.max(min - alreadyInCart, 1);
+                enforcedMin = Math.max(min - alreadyInCart, 1);
 
-                qtyInput.value = toAdd;
+                qtyInput.value = enforcedMin;
 
-                qtyInput.addEventListener('input', () => {
-                    if (parseInt(qtyInput.value || '0') < toAdd) {
-                        qtyInput.value = toAdd;
-                    }
-                });
+                // Обновляем обработчики, чтобы избежать дублирования при смене вариаций.
+                qtyInput.removeEventListener('input', handleQtyInput);
+                qtyInput.addEventListener('input', handleQtyInput);
 
                 const minusBtn = document.querySelector('.quantity .minus');
+                if (boundMinusBtn && boundMinusBtn !== minusBtn) {
+                    boundMinusBtn.removeEventListener('click', handleMinusClick);
+                }
                 if (minusBtn) {
-                    minusBtn.addEventListener('click', function () {
-                        setTimeout(() => {
-                            if (parseInt(qtyInput.value || '0') < toAdd) {
-                                qtyInput.value = toAdd;
-                            }
-                        }, 100);
-                    });
+                    minusBtn.removeEventListener('click', handleMinusClick);
+                    minusBtn.addEventListener('click', handleMinusClick);
+                    boundMinusBtn = minusBtn;
                 }
             });
     }
