@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', function () {
-    const min = seedlingSettings.minQty;
-    const slug = seedlingSettings.slug;
+    // Получаем настройки, переданные из PHP
+    const min = seedlingProductSettings.minQty;
+    const slug = seedlingProductSettings.slug;
     const body = document.body;
     const variationForm = document.querySelector('form.variations_form');
     const qtyInput = document.querySelector('input.qty');

@@ -167,71 +167,84 @@ function seedling_get_cart_qty() {
 add_action('wp_ajax_seedling_get_cart_qty', 'seedling_get_cart_qty');
 add_action('wp_ajax_nopriv_seedling_get_cart_qty', 'seedling_get_cart_qty');
 
-// === JS-проверка с AJAX ===
-add_action('wp_footer', function () {
-    if (!is_cart() && !is_checkout()) return;
-    ?>
-    <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const ajaxUrl = '<?= admin_url('admin-ajax.php?action=seedling_validate_cart_full') ?>';
-        const selectors = ['.checkout-button', '#place_order'];
-        const noticeId = 'seedling-dynamic-warning';
+/**
+ * Возвращает общее количество товаров из категории в корзине.
+ *
+ * Используется для проверки минимального общего количества на стороне клиента.
+ */
+function seedling_get_cat_total() {
+    $slug      = get_option('woo_seedling_category_slug', 'seedling');
+    $min_total = (int) get_option('woo_seedling_min_total', 20);
 
-        function showMessages(msgs) {
-            let box = document.getElementById(noticeId);
-            if (!box) {
-                box = document.createElement('div');
-                box.id = noticeId;
-                box.className = 'woocommerce-error';
-                const c = document.querySelector('.cart_totals, form.checkout, body');
-                if (c) c.prepend(box);
-            }
-            box.innerHTML = msgs.map(m => `<li>${m}</li>`).join('');
+    $total = 0;
+    foreach (WC()->cart->get_cart() as $item) {
+        if (has_term($slug, 'product_cat', $item['product_id'])) {
+            $total += $item['quantity'];
         }
+    }
 
-        function disableBtns(disable) {
-            selectors.forEach(sel => {
-                document.querySelectorAll(sel).forEach(btn => {
-                    if (disable) {
-                        btn.setAttribute('disabled', 'disabled');
-                        btn.classList.add('disabled');
-                    } else {
-                        btn.removeAttribute('disabled');
-                        btn.classList.remove('disabled');
-                    }
-                });
-            });
-        }
+    wp_send_json([
+        'total' => $total,
+        'min'   => $min_total,
+        'valid' => $total >= $min_total,
+    ]);
+}
 
-        function checkCart() {
-            fetch(ajaxUrl, { credentials: 'same-origin' })
-                .then(r => r.json())
-                .then(d => {
-                    if (d.valid) {
-                        document.getElementById(noticeId)?.remove();
-                        disableBtns(false);
-                    } else {
-                        showMessages(d.messages);
-                        disableBtns(true);
-                    }
-                });
-        }
+add_action('wp_ajax_seedling_get_cat_total', 'seedling_get_cat_total');
+add_action('wp_ajax_nopriv_seedling_get_cat_total', 'seedling_get_cat_total');
 
-        checkCart();
-        const mo = new MutationObserver(checkCart);
-        mo.observe(document.body, { childList: true, subtree: true });
-    });
-    </script>
-    <?php
+// === Подключение скриптов ===
+
+/**
+ * Подключает скрипт ограничения количества на странице товара.
+ */
+add_action('wp_enqueue_scripts', function () {
+    if (!is_product()) {
+        return;
+    }
+
+    wp_enqueue_script(
+        'seedling-product-limit',
+        plugin_dir_url(__FILE__) . 'assets/js/seedling-product-limit.js',
+        [],
+        null,
+        true
+    );
+
+    // Передаём минимальное количество и слаг категории в скрипт
+    wp_localize_script(
+        'seedling-product-limit',
+        'seedlingProductSettings',
+        [
+            'minQty' => (int) get_option('woo_seedling_min_variation', 5),
+            'slug'    => get_option('woo_seedling_category_slug', 'seedling'),
+        ]
+    );
 });
 
+/**
+ * Подключает валидацию корзины на страницах корзины и оформления заказа.
+ */
 add_action('wp_enqueue_scripts', function () {
-    if (!is_product()) return;
+    if (!is_cart() && !is_checkout()) {
+        return;
+    }
 
-    wp_enqueue_script('seedling-product-limit', plugin_dir_url(__FILE__) . 'assets/js/seedling-product-limit.js', [], null, true);
+    wp_enqueue_script(
+        'seedling-cart-validation',
+        plugin_dir_url(__FILE__) . 'assets/js/seedling-cart-validation.js',
+        ['jquery'],
+        null,
+        true
+    );
 
-    wp_localize_script('seedling-product-limit', 'seedlingSettings', [
-        'minQty' => (int)get_option('woo_seedling_min_variation', 5),
-        'slug' => get_option('woo_seedling_category_slug', 'seedling'),
-    ]);
+    // Передаём AJAX‑адреса в скрипт для проверки корзины
+    wp_localize_script(
+        'seedling-cart-validation',
+        'seedlingCartSettings',
+        [
+            'ajaxUrl'       => admin_url('admin-ajax.php?action=seedling_validate_cart_full'),
+            'totalCheckUrl' => admin_url('admin-ajax.php?action=seedling_get_cat_total'),
+        ]
+    );
 });
