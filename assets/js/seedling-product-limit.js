@@ -7,10 +7,20 @@ document.addEventListener('DOMContentLoaded', function () {
     const qtyInput = document.querySelector('input.qty');
     const variationIdInput = document.querySelector('input[name="variation_id"]');
 
+    // Проверяем, существует ли форма выбора вариации. Если её нет,
+    // обработчики событий не назначаются, чтобы избежать ошибок.
+    if (!variationForm) {
+        return;
+    }
+
     if (!body.classList.contains(`product_cat-${slug}`)) return;
 
     if (!qtyInput || !variationIdInput) return;
 
+    /**
+     * Получает количество выбранной вариации в корзине и
+     * устанавливает минимально допустимое значение в поле ввода.
+     */
     function checkAndUpdateQuantity() {
         const variationId = parseInt(variationIdInput.value || '0');
         if (!variationId) return;
@@ -59,8 +69,10 @@ document.addEventListener('DOMContentLoaded', function () {
         checkAndUpdateQuantity();
     });
 	
-	jQuery(function ($) {
-        $(document.body).on('click', '.single_add_to_cart_button', function (e) {
+    // Отслеживаем процесс добавления товара в корзину, чтобы при ошибке
+    // показать сообщение из сессии WooCommerce.
+    jQuery(function ($) {
+        $(document.body).on('click', '.single_add_to_cart_button', function () {
             let wasAdded = false;
 
             $(document.body).one('added_to_cart', function () {
