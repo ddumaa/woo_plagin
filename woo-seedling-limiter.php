@@ -331,8 +331,7 @@ class Seedling_Limiter
             'seedling-cart-validation',
             'seedlingCartSettings',
             [
-                'ajaxUrl'       => admin_url('admin-ajax.php?action=seedling_validate_cart_full'),
-                'totalCheckUrl' => admin_url('admin-ajax.php?action=seedling_get_cat_total'),
+                'ajaxUrl' => admin_url('admin-ajax.php?action=seedling_validate_cart_full'),
             ]
         );
     }

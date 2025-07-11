@@ -1,9 +1,8 @@
 // Скрипт проверяет корзину на соответствие минимальным ограничениям.
 document.addEventListener('DOMContentLoaded', function () {
-    // URL-адрес для проверки корзины через AJAX
+    // URL-адрес для проверки корзины через AJAX.
+    // Сервер возвращает список сообщений и признак валидности.
     const ajaxUrl = seedlingCartSettings.ajaxUrl;
-    // URL-адрес для получения общего количества по категории
-    const totalUrl = seedlingCartSettings.totalCheckUrl;
     // Кнопки оформления заказа, которые нужно блокировать при ошибках
     const selectors = ['.checkout-button', '#place_order', 'a.checkout'];
     // ID контейнера для вывода сообщений об ошибках
@@ -72,26 +71,16 @@ document.addEventListener('DOMContentLoaded', function () {
         fetch(ajaxUrl, { credentials: 'same-origin' })
             .then(r => r.json())
             .then(d => {
-                let valid = d.valid;
-                let messages = d.messages || [];
+                const valid = d.valid;
+                const messages = d.messages || [];
 
-                fetch(totalUrl, { credentials: 'same-origin' })
-                    .then(r2 => r2.json())
-                    .then(catData => {
-                        if (!catData.valid) {
-                            valid = false;
-                            const msg = `Общее количество товаров из категории должно быть не менее ${catData.min}. Сейчас — ${catData.total}.`;
-                            messages.push(msg);
-                        }
-
-                        if (valid) {
-                            document.getElementById(noticeId)?.remove();
-                            disableBtns(false);
-                        } else {
-                            showMessages(messages);
-                            disableBtns(true);
-                        }
-                    });
+                if (valid) {
+                    document.getElementById(noticeId)?.remove();
+                    disableBtns(false);
+                } else {
+                    showMessages(messages);
+                    disableBtns(true);
+                }
             });
     }
 
