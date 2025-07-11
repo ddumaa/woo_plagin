@@ -1,24 +1,17 @@
 document.addEventListener('DOMContentLoaded', function () {
     const min = seedlingSettings.minQty;
     const slug = seedlingSettings.slug;
-	const body = document.body;
-	const variationForm = document.querySelector('form.variations_form');
+    const body = document.body;
+    const variationForm = document.querySelector('form.variations_form');
+    const qtyInput = document.querySelector('input.qty');
+    const variationIdInput = document.querySelector('input[name="variation_id"]');
 
     if (!body.classList.contains(`product_cat-${slug}`)) return;
 
     if (!qtyInput || !variationIdInput) return;
 
-    variationForm.addEventListener('woocommerce_variation_select_change', () => {
-        // variation_id ещё может быть не установлен
-        setTimeout(checkAndUpdateQuantity, 100);
-    });
-
-    variationForm.addEventListener('found_variation', function (e) {
-        const variation = e.detail?.variation || e.detail;
-        const variationId = variation?.variation_id;
-		const qtyInput = document.querySelector('input.qty');
-		const variationIdInput = document.querySelector('input[name="variation_id"]');
-
+    function checkAndUpdateQuantity() {
+        const variationId = parseInt(variationIdInput.value || '0');
         if (!variationId) return;
 
         fetch(`/wp-admin/admin-ajax.php?action=seedling_get_cart_qty&variation_id=${variationId}`, { credentials: 'same-origin' })
@@ -47,6 +40,22 @@ document.addEventListener('DOMContentLoaded', function () {
                     });
                 }
             });
+    }
+
+    variationForm.addEventListener('woocommerce_variation_select_change', () => {
+        // variation_id ещё может быть не установлен
+        setTimeout(checkAndUpdateQuantity, 100);
+    });
+
+    variationForm.addEventListener('found_variation', function (e) {
+        const variation = e.detail?.variation || e.detail;
+        const variationId = variation?.variation_id;
+
+        if (!variationId) return;
+
+        // WooCommerce может установить значение позже, поэтому подстрахуемся
+        variationIdInput.value = variationId;
+        checkAndUpdateQuantity();
     });
 	
 	jQuery(function ($) {
