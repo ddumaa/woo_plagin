@@ -43,8 +43,6 @@ class Seedling_Limiter
         add_action('wp_ajax_seedling_get_cart_qty', [$this, 'get_cart_qty']);
         add_action('wp_ajax_nopriv_seedling_get_cart_qty', [$this, 'get_cart_qty']);
 
-        add_action('wp_ajax_seedling_get_cat_total', [$this, 'get_cat_total']);
-        add_action('wp_ajax_nopriv_seedling_get_cat_total', [$this, 'get_cat_total']);
 
         add_action('wp_enqueue_scripts', [$this, 'enqueue_product_script']);
         add_action('wp_enqueue_scripts', [$this, 'enqueue_cart_script']);
@@ -279,31 +277,6 @@ class Seedling_Limiter
         }
 
         wp_send_json_success(['quantity' => $sum]);
-    }
-
-    /**
-     * Provides total quantity of products from the configured category.
-     */
-    public function get_cat_total(): void
-    {
-        // Verify nonce before processing the request
-        check_ajax_referer(self::NONCE_ACTION, 'nonce');
-
-        $slug      = get_option('woo_seedling_category_slug', 'seedling');
-        $min_total = (int) get_option('woo_seedling_min_total', 20);
-
-        $total = 0;
-        foreach (WC()->cart->get_cart() as $item) {
-            if (has_term($slug, 'product_cat', $item['product_id'])) {
-                $total += $item['quantity'];
-            }
-        }
-
-        wp_send_json([
-            'total' => $total,
-            'min'   => $min_total,
-            'valid' => $total >= $min_total,
-        ]);
     }
 
     /**
