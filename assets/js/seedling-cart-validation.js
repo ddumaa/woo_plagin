@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', function () {
-    const ajaxUrl = seedlingSettings.ajaxUrl;
-    const totalUrl = seedlingSettings.totalCheckUrl;
+    // Настройки для AJAX-запросов передаются из PHP
+    const ajaxUrl = seedlingCartSettings.ajaxUrl;
+    const totalUrl = seedlingCartSettings.totalCheckUrl;
     const selectors = ['.checkout-button', '#place_order', 'a.checkout'];
     const noticeId = 'seedling-dynamic-warning';
 
