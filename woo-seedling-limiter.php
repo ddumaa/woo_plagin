@@ -251,19 +251,27 @@ class Seedling_Limiter
 
     /**
      * Returns quantity of a variation currently in the cart.
+     *
+     * Retrieves the requested variation ID from the query string, validates it
+     * and returns the total quantity of that variation found in the cart. The
+     * method gracefully handles missing or non-numeric values.
      */
     public function get_cart_qty(): void
     {
         // Verify nonce to ensure the request is legitimate
         check_ajax_referer(self::NONCE_ACTION, 'nonce');
 
-        if (!isset($_GET['variation_id'])) {
-            wp_send_json_error(['message' => 'Missing variation_id']);
+        // Obtain the variation ID; absint() ensures a positive integer value
+        $variation_id = isset($_GET['variation_id']) ? absint($_GET['variation_id']) : 0;
+
+        // Missing or invalid variation ID should return a clear error
+        if ($variation_id === 0) {
+            wp_send_json_error(['message' => 'Invalid or missing variation_id']);
         }
 
-        $variation_id = (int) $_GET['variation_id'];
-        $sum          = 0;
+        $sum = 0;
 
+        // Iterate over the cart and sum the quantities for the requested variation
         foreach (WC()->cart->get_cart() as $item) {
             if ((int) $item['variation_id'] === $variation_id) {
                 $sum += (int) $item['quantity'];
