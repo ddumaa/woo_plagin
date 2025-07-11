@@ -1,10 +1,16 @@
+// Скрипт обеспечивает выполнение минимального количества для вариаций товара
+// на странице продукта.
 document.addEventListener('DOMContentLoaded', function () {
-    // Получаем настройки, переданные из PHP
+    // Минимальное количество для текущей вариации
     const min = seedlingProductSettings.minQty;
+    // Слаг категории, для которой действует ограничение
     const slug = seedlingProductSettings.slug;
     const body = document.body;
+    // Основная форма выбора вариаций
     const variationForm = document.querySelector('form.variations_form');
+    // Поле ввода количества товара
     const qtyInput = document.querySelector('input.qty');
+    // Скрытое поле с выбранной вариацией
     const variationIdInput = document.querySelector('input[name="variation_id"]');
 
     // Проверяем, существует ли форма выбора вариации. Если её нет,
@@ -17,11 +23,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (!qtyInput || !variationIdInput) return;
 
-    // Минимальное значение, которое допускается в поле количества.
-    // Обновляется функцией checkAndUpdateQuantity.
+    // Фактический минимум, разрешённый в поле количества.
+    // Значение изменяется функцией checkAndUpdateQuantity.
     let enforcedMin = 1;
 
-    // Хранит кнопку уменьшения, чтобы можно было снять обработчик при её замене.
+    // Ссылка на кнопку "минус" для корректного управления обработчиками
     let boundMinusBtn = null;
 
     /**
