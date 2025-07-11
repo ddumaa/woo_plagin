@@ -206,7 +206,7 @@ add_action('wp_enqueue_scripts', function () {
     wp_enqueue_script(
         'seedling-product-limit',
         plugin_dir_url(__FILE__) . 'assets/js/seedling-product-limit.js',
-        [],
+        ['jquery'], // Подключаем jQuery, используемую WordPress
         null,
         true
     );
