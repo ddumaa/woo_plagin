@@ -60,7 +60,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const variationId = parseInt(variationIdInput.value || '0');
         if (!variationId) return;
 
-        fetch(`/wp-admin/admin-ajax.php?action=seedling_get_cart_qty&variation_id=${variationId}`, { credentials: 'same-origin' })
+        fetch(`/wp-admin/admin-ajax.php?action=seedling_get_cart_qty&variation_id=${variationId}&nonce=${seedlingProductSettings.nonce}`, { credentials: 'same-origin' })
             .then(r => r.json())
             .then(data => {
                 if (!data.success) return;
