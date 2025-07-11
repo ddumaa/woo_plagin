@@ -140,6 +140,33 @@ function seedling_validate_cart() {
     }
 }
 
+/**
+ * Handle AJAX request to get quantity of a variation already in the cart.
+ *
+ * Summarizes the quantity of products with a given variation ID and returns
+ * the amount in a JSON response. This allows the frontend to adjust the
+ * quantity input according to the current cart state.
+ */
+function seedling_get_cart_qty() {
+    if (!isset($_GET['variation_id'])) {
+        wp_send_json_error(['message' => 'Missing variation_id']);
+    }
+
+    $variation_id = (int)$_GET['variation_id'];
+    $sum = 0;
+
+    foreach (WC()->cart->get_cart() as $item) {
+        if ((int)$item['variation_id'] === $variation_id) {
+            $sum += (int)$item['quantity'];
+        }
+    }
+
+    wp_send_json_success(['quantity' => $sum]);
+}
+
+add_action('wp_ajax_seedling_get_cart_qty', 'seedling_get_cart_qty');
+add_action('wp_ajax_nopriv_seedling_get_cart_qty', 'seedling_get_cart_qty');
+
 // === JS-проверка с AJAX ===
 add_action('wp_footer', function () {
     if (!is_cart() && !is_checkout()) return;
