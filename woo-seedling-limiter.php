@@ -16,6 +16,10 @@ if (!defined('ABSPATH')) {
 class Seedling_Limiter
 {
     /**
+     * Nonce action used for AJAX security checks.
+     */
+    private const NONCE_ACTION = 'seedling-limiter';
+    /**
      * Seedling_Limiter constructor.
      *
      * Registers all WordPress hooks required for the plugin to operate.
@@ -196,6 +200,11 @@ class Seedling_Limiter
      */
     public function validate_cart(): void
     {
+        // When called via AJAX verify the nonce
+        if (defined('DOING_AJAX') && DOING_AJAX) {
+            check_ajax_referer(self::NONCE_ACTION, 'nonce');
+        }
+
         $slug      = get_option('woo_seedling_category_slug', 'seedling');
         $min_qty   = (int) get_option('woo_seedling_min_variation', 5);
         $min_total = (int) get_option('woo_seedling_min_total', 20);
@@ -245,6 +254,9 @@ class Seedling_Limiter
      */
     public function get_cart_qty(): void
     {
+        // Verify nonce to ensure the request is legitimate
+        check_ajax_referer(self::NONCE_ACTION, 'nonce');
+
         if (!isset($_GET['variation_id'])) {
             wp_send_json_error(['message' => 'Missing variation_id']);
         }
@@ -266,6 +278,9 @@ class Seedling_Limiter
      */
     public function get_cat_total(): void
     {
+        // Verify nonce before processing the request
+        check_ajax_referer(self::NONCE_ACTION, 'nonce');
+
         $slug      = get_option('woo_seedling_category_slug', 'seedling');
         $min_total = (int) get_option('woo_seedling_min_total', 20);
 
@@ -306,6 +321,7 @@ class Seedling_Limiter
             [
                 'minQty' => (int) get_option('woo_seedling_min_variation', 5),
                 'slug'   => get_option('woo_seedling_category_slug', 'seedling'),
+                'nonce'  => wp_create_nonce(self::NONCE_ACTION),
             ]
         );
     }
@@ -332,6 +348,7 @@ class Seedling_Limiter
             'seedlingCartSettings',
             [
                 'ajaxUrl' => admin_url('admin-ajax.php?action=seedling_validate_cart_full'),
+                'nonce'   => wp_create_nonce(self::NONCE_ACTION),
             ]
         );
     }

@@ -68,7 +68,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Проверяет корзину через AJAX и отображает найденные ошибки
     function checkCart() {
-        fetch(ajaxUrl, { credentials: 'same-origin' })
+        fetch(ajaxUrl + `&nonce=${seedlingCartSettings.nonce}`, { credentials: 'same-origin' })
             .then(r => r.json())
             .then(d => {
                 const valid = d.valid;
