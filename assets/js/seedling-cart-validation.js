@@ -16,13 +16,16 @@ document.addEventListener('DOMContentLoaded', function () {
 			box.id = noticeId;
 			box.className = 'woocommerce-error';
 
-			const insertPlaces = [
-				document.querySelector('.woocommerce-notices-wrapper'),        // основное место
-				document.querySelector('.woocommerce-cart-form'),              // корзина
-				document.querySelector('.woocommerce-checkout-review-order'),  // оформление
-				document.querySelector('.woocommerce-mini-cart'),              // модальная
-				document.querySelector('body')                                 // fallback
-			];
+                        // Список контейнеров, куда можно поместить сообщения.
+                        // Используется первый найденный элемент.
+                        const insertPlaces = [
+                                document.querySelector(".mfn-ch-content"),                    // контент темы
+                                document.querySelector(".woocommerce-notices-wrapper"),        // основное место
+                                document.querySelector(".woocommerce-cart-form"),              // корзина
+                                document.querySelector(".woocommerce-checkout-review-order"),  // оформление заказа
+                                document.querySelector(".woocommerce-mini-cart"),              // модальная корзина
+                                document.querySelector("body")               // запасной вариант
+                        ];
 
 			for (const el of insertPlaces) {
 				if (el) {
