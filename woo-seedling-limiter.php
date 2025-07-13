@@ -68,6 +68,7 @@ class Seedling_Limiter
         );
     }
 
+
     /**
      * Renders the settings page for plugin options.
      *
@@ -98,11 +99,31 @@ class Seedling_Limiter
      */
     public function register_settings(): void
     {
-        register_setting('woo_seedling_limit_settings', 'woo_seedling_category_slug');
-        register_setting('woo_seedling_limit_settings', 'woo_seedling_min_variation');
-        register_setting('woo_seedling_limit_settings', 'woo_seedling_min_total');
-        register_setting('woo_seedling_limit_settings', 'woo_seedling_msg_variation');
-        register_setting('woo_seedling_limit_settings', 'woo_seedling_msg_total');
+        register_setting(
+            'woo_seedling_limit_settings',
+            'woo_seedling_category_slug',
+            ['sanitize_callback' => 'sanitize_text_field']
+        );
+        register_setting(
+            'woo_seedling_limit_settings',
+            'woo_seedling_min_variation',
+            ['sanitize_callback' => 'absint']
+        );
+        register_setting(
+            'woo_seedling_limit_settings',
+            'woo_seedling_min_total',
+            ['sanitize_callback' => 'absint']
+        );
+        register_setting(
+            'woo_seedling_limit_settings',
+            'woo_seedling_msg_variation',
+            ['sanitize_callback' => [$this, 'sanitize_multiline_text']]
+        );
+        register_setting(
+            'woo_seedling_limit_settings',
+            'woo_seedling_msg_total',
+            ['sanitize_callback' => [$this, 'sanitize_multiline_text']]
+        );
 
         add_settings_section('woo_seedling_main', 'Основные настройки', null, 'woo-seedling-limit');
 
@@ -166,6 +187,21 @@ class Seedling_Limiter
             'woo-seedling-limit',
             'woo_seedling_main'
         );
+    }
+
+    /**
+     * Sanitizes multiline text fields from the settings page.
+     *
+     * ISP: метод занимается только очисткой входящих данных,
+     * что упрощает поддержку и тестирование кода.
+     *
+     * @param string $input Raw user input from textarea field.
+     *
+     * @return string Sanitized text safe for storing in the database.
+     */
+    private function sanitize_multiline_text(string $input): string
+    {
+        return sanitize_textarea_field($input);
     }
 
     /**
