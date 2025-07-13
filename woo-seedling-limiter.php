@@ -308,11 +308,17 @@ class Seedling_Limiter
     }
 
     /**
-     * Enqueues cart validation script on cart and checkout pages.
+     * Подключает скрипт проверки корзины.
+     *
+     * Скрипт нужен не только на страницах "Корзина" и "Оформление заказа",
+     * но и на любых страницах, где выводится мини-корзина WooCommerce.
      */
     public function enqueue_cart_script(): void
     {
-        if (!is_cart() && !is_checkout()) {
+        // Мини-корзина может быть выведена через виджет WooCommerce
+        $has_mini_cart = is_active_widget(false, false, 'woocommerce_widget_cart', true);
+
+        if (!is_cart() && !is_checkout() && !$has_mini_cart) {
             return;
         }
 
