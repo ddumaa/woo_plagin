@@ -415,3 +415,29 @@ class Seedling_Limiter
 }
 
 new Seedling_Limiter();
+
+/**
+ * Runs on plugin activation and sets default option values.
+ *
+ * SRP: guarantees that all required options exist with sane defaults.
+ * This function does not modify existing values to respect user changes.
+ */
+function activate_plugin(): void
+{
+    $defaults = [
+        'woo_seedling_category_slug' => 'seedling',
+        'woo_seedling_min_variation' => 5,
+        'woo_seedling_min_total'     => 20,
+        'woo_seedling_msg_variation' => 'Минимальное количество для {name} ({attr}) — {min} шт. Сейчас — {current}.',
+        'woo_seedling_msg_total'     => 'Общее количество товаров из категории должно быть не менее {min}. Сейчас — {current}.',
+    ];
+
+    foreach ($defaults as $option => $value) {
+        // Создаём опцию только при её отсутствии
+        if (get_option($option) === false) {
+            add_option($option, $value);
+        }
+    }
+}
+
+register_activation_hook(__FILE__, 'activate_plugin');
