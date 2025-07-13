@@ -453,12 +453,12 @@ class Seedling_Limiter
 new Seedling_Limiter();
 
 /**
- * Runs on plugin activation and sets default option values.
+ * Handles plugin activation by creating default options if they are missing.
  *
- * SRP: guarantees that all required options exist with sane defaults.
- * This function does not modify existing values to respect user changes.
+ * SRP: гарантирует наличие всех необходимых опций с адекватными значениями
+ * по умолчанию и не затрагивает пользовательские настройки.
  */
-function activate_plugin(): void
+function seedling_limiter_activate(): void
 {
     $defaults = [
         'woo_seedling_category_slug' => 'seedling',
@@ -476,4 +476,6 @@ function activate_plugin(): void
     }
 }
 
-register_activation_hook(__FILE__, 'activate_plugin');
+// Регистрация хука активации плагина. Привязываем его к функции
+// seedling_limiter_activate(), чтобы отделить инициализацию от остальных задач.
+register_activation_hook(__FILE__, 'seedling_limiter_activate');
