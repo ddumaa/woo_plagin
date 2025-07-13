@@ -38,6 +38,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (parseInt(qtyInput.value || '0') < enforcedMin) {
             qtyInput.value = enforcedMin;
         }
+        updateMinusButtonState();
     }
 
     /**
@@ -49,7 +50,26 @@ document.addEventListener('DOMContentLoaded', function () {
             if (parseInt(qtyInput.value || '0') < enforcedMin) {
                 qtyInput.value = enforcedMin;
             }
+            updateMinusButtonState();
         }, 100);
+    }
+
+    /**
+     * Activates or disables the minus button based on current quantity.
+     * Prevents decreasing below the enforced minimum value.
+     */
+    function updateMinusButtonState() {
+        if (!boundMinusBtn) return;
+        const qty = parseInt(qtyInput.value || '0');
+        if (qty <= enforcedMin) {
+            boundMinusBtn.disabled = true;
+            boundMinusBtn.classList.add('disabled');
+            boundMinusBtn.setAttribute('aria-disabled', 'true');
+        } else {
+            boundMinusBtn.disabled = false;
+            boundMinusBtn.classList.remove('disabled');
+            boundMinusBtn.removeAttribute('aria-disabled');
+        }
     }
 
     /**
@@ -82,6 +102,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     minusBtn.addEventListener('click', handleMinusClick);
                     boundMinusBtn = minusBtn;
                 }
+                updateMinusButtonState();
             });
     }
 
@@ -100,6 +121,10 @@ document.addEventListener('DOMContentLoaded', function () {
         variationIdInput.value = variationId;
         checkAndUpdateQuantity();
     });
+
+    // Выполним проверку сразу при загрузке страницы на случай,
+    // если вариация уже выбрана по умолчанию
+    checkAndUpdateQuantity();
 	
     // Отслеживаем процесс добавления товара в корзину, чтобы при ошибке
     // показать сообщение из сессии WooCommerce.
