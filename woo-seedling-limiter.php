@@ -145,7 +145,7 @@ class Seedling_Limiter
             function () {
                 $value = get_option(
                     'woo_seedling_msg_variation',
-                    'Минимальное количество для этой вариации — {min} шт. Сейчас — {current}.'
+                    'Минимальное количество для {name} ({attr}) — {min} шт. Сейчас — {current}.'
                 );
                 echo "<input type='text' name='woo_seedling_msg_variation' value='" . esc_attr($value) . "' style='width: 100%' />";
             },
@@ -166,6 +166,32 @@ class Seedling_Limiter
             'woo-seedling-limit',
             'woo_seedling_main'
         );
+    }
+
+    /**
+     * Формирует человекочитаемую строку атрибутов вариации.
+     *
+     * @param WC_Product_Variation $variation Вариация товара.
+     *
+     * @return string Список атрибутов вида "Цвет: Красный, Размер: M".
+     */
+    private function format_variation_attributes(WC_Product_Variation $variation): string
+    {
+        $out = [];
+
+        foreach ($variation->get_attributes() as $taxonomy => $term_slug) {
+            if (!$term_slug) {
+                continue;
+            }
+
+            $label = wc_attribute_label($taxonomy);
+            $term  = get_term_by('slug', $term_slug, $taxonomy);
+            $value = $term ? $term->name : $term_slug;
+
+            $out[] = sprintf('%s: %s', $label, $value);
+        }
+
+        return implode(', ', $out);
     }
 
     /**
@@ -200,8 +226,22 @@ class Seedling_Limiter
             }
         }
 
-        if (($current_qty + $quantity) < $min_qty) {
-            wc_add_notice("Минимальное количество для этой вариации — {$min_qty} шт.", 'error');
+        $new_total = $current_qty + $quantity;
+
+        if ($new_total < $min_qty) {
+            $variation = wc_get_product($variation_id);
+            $name      = $variation ? $variation->get_name() : '';
+            $attrs     = $variation instanceof WC_Product_Variation ? $this->format_variation_attributes($variation) : '';
+            $template  = get_option(
+                'woo_seedling_msg_variation',
+                'Минимальное количество для {name} ({attr}) — {min} шт. Сейчас — {current}.'
+            );
+            $message = str_replace(
+                ['{min}', '{name}', '{attr}', '{current}'],
+                [$min_qty, $name, $attrs, $new_total],
+                $template
+            );
+            wc_add_notice($message, 'error');
             return false;
         }
 
@@ -246,8 +286,14 @@ class Seedling_Limiter
         // Формируем сообщения об ошибках для вариаций
         foreach ($variation_quantities as $variation_id => $qty) {
             if ($qty < $min_qty) {
-                $name    = wc_get_product($variation_id)->get_name();
-                $errors[] = str_replace(['{min}', '{name}', '{current}'], [$min_qty, $name, $qty], $msg_var);
+                $variation = wc_get_product($variation_id);
+                $name      = $variation ? $variation->get_name() : '';
+                $attrs     = $variation instanceof WC_Product_Variation ? $this->format_variation_attributes($variation) : '';
+                $errors[]  = str_replace(
+                    ['{min}', '{name}', '{attr}', '{current}'],
+                    [$min_qty, $name, $attrs, $qty],
+                    $msg_var
+                );
             }
         }
 
