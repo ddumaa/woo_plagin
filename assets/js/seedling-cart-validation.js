@@ -1,4 +1,6 @@
 // Скрипт проверяет корзину на соответствие минимальным ограничениям.
+// Получает данные от метода validate_cart PHP‑плагина и
+// блокирует оформление заказа при нарушениях.
 document.addEventListener('DOMContentLoaded', function () {
     // URL-адрес для проверки корзины через AJAX.
     // Сервер возвращает список сообщений и признак валидности.
@@ -15,7 +17,10 @@ document.addEventListener('DOMContentLoaded', function () {
     // ID контейнера для вывода сообщений об ошибках
     const noticeId = 'seedling-dynamic-warning';
 
-    // Отображает список сообщений об ошибках в специальном блоке
+    /**
+     * Отображает список сообщений об ошибках в специальном блоке.
+     * Используется функцией checkCart() для вывода уведомлений.
+     */
     function showMessages(msgs) {
 		let box = document.getElementById(noticeId);
 		if (!box) {
@@ -110,10 +115,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Выполняем проверку сразу после загрузки документа и следим за изменениями DOM
     checkCart();
+    // Следим за изменениями DOM, чтобы вовремя обновлять состояние кнопок
     const mo = new MutationObserver(checkCart);
     mo.observe(document.body, { childList: true, subtree: true });
 
     // После обновления фрагментов WooCommerce (например, мини‑корзины) также
     // повторяем проверку, чтобы состояние кнопок всегда было актуальным.
+    // Повторная проверка при обновлении фрагментов WooCommerce
     jQuery(document.body).on('wc_fragments_refreshed updated_wc_div', checkCart);
 });

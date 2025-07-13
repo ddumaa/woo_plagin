@@ -1,5 +1,7 @@
 // Скрипт обеспечивает выполнение минимального количества для вариаций товара
 // на странице продукта.
+// Использует AJAX-метод get_cart_qty из PHP-плагина для расчёта доступного
+// минимума.
 document.addEventListener('DOMContentLoaded', function () {
     // Минимальное количество для текущей вариации
     const min = seedlingProductSettings.minQty;
@@ -106,11 +108,13 @@ document.addEventListener('DOMContentLoaded', function () {
             });
     }
 
+    // Пересчитываем минимальное значение при смене вариации
     variationForm.addEventListener('woocommerce_variation_select_change', () => {
         // variation_id ещё может быть не установлен
         setTimeout(checkAndUpdateQuantity, 100);
     });
 
+    // Проверяем количество сразу после выбора вариации WooCommerce
     variationForm.addEventListener('found_variation', function (e) {
         const variation = e.detail?.variation || e.detail;
         const variationId = variation?.variation_id;
@@ -122,12 +126,13 @@ document.addEventListener('DOMContentLoaded', function () {
         checkAndUpdateQuantity();
     });
 
-    // Выполним проверку сразу при загрузке страницы на случай,
-    // если вариация уже выбрана по умолчанию
+    // Выполним проверку сразу при загрузке страницы,
+    // если вариация выбрана по умолчанию
     checkAndUpdateQuantity();
 	
-    // Отслеживаем процесс добавления товара в корзину, чтобы при ошибке
-    // показать сообщение из сессии WooCommerce.
+    // Отслеживаем процесс добавления товара в корзину,
+    // чтобы при ошибке показать сообщение из сессии WooCommerce.
+    // Используем jQuery для обработки уведомлений WooCommerce
     jQuery(function ($) {
         $(document.body).on('click', '.single_add_to_cart_button', function () {
             let wasAdded = false;
