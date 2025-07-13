@@ -22,7 +22,9 @@ class Seedling_Limiter
     /**
      * Seedling_Limiter constructor.
      *
-     * Registers all WordPress hooks required for the plugin to operate.
+     * Single responsibility: подключить все хуки WordPress,
+     * необходимые плагину. Служит точкой объединения остальных
+     * методов класса.
      */
     public function __construct()
     {
@@ -50,6 +52,9 @@ class Seedling_Limiter
 
     /**
      * Adds plugin submenu under WooCommerce menu.
+     *
+     * SRP: создание страницы настроек и привязка к
+     * методу render_settings_page().
      */
     public function add_admin_menu(): void
     {
@@ -65,6 +70,9 @@ class Seedling_Limiter
 
     /**
      * Renders the settings page for plugin options.
+     *
+     * SRP: вывод формы настроек. Используется только
+     * методом add_admin_menu().
      */
     public function render_settings_page(): void
     {
@@ -84,6 +92,9 @@ class Seedling_Limiter
 
     /**
      * Registers all plugin settings displayed on the admin page.
+     *
+     * SRP: определяет опции плагина и их поля.
+     * Взаимодействует с render_settings_page() для вывода формы.
      */
     public function register_settings(): void
     {
@@ -160,6 +171,9 @@ class Seedling_Limiter
     /**
      * Validates adding a product variation to the cart.
      *
+     * SRP: проверяет минимальное количество для выбранной вариации.
+     * Используется фильтром WooCommerce перед добавлением в корзину.
+     *
      * @param bool     $passed       Whether the add to cart should proceed.
      * @param int      $product_id   ID of the product being added.
      * @param int      $quantity     Quantity requested by the customer.
@@ -179,6 +193,7 @@ class Seedling_Limiter
         }
 
         $current_qty = 0;
+        // Собираем количество данной вариации уже присутствующее в корзине
         foreach (WC()->cart->get_cart() as $item) {
             if ($item['variation_id'] == $variation_id) {
                 $current_qty += $item['quantity'];
@@ -195,6 +210,9 @@ class Seedling_Limiter
 
     /**
      * Validates the cart either during checkout or via AJAX call.
+     *
+     * SRP: проверяет корзину на соответствие установленным ограничениям.
+     * Вызывается как действие WooCommerce и через AJAX.
      */
     public function validate_cart(): void
     {
@@ -213,6 +231,7 @@ class Seedling_Limiter
         $total_in_category    = 0;
         $errors               = [];
 
+        // Подсчитываем количество каждой вариации и общий объём в категории
         foreach (WC()->cart->get_cart() as $item) {
             $variation_id = $item['variation_id'];
             $parent_id    = $item['product_id'];
@@ -224,6 +243,7 @@ class Seedling_Limiter
             $total_in_category += $item['quantity'];
         }
 
+        // Формируем сообщения об ошибках для вариаций
         foreach ($variation_quantities as $variation_id => $qty) {
             if ($qty < $min_qty) {
                 $name    = wc_get_product($variation_id)->get_name();
@@ -231,6 +251,7 @@ class Seedling_Limiter
             }
         }
 
+        // Проверяем общий минимум по категории
         if ($total_in_category < $min_total) {
             $errors[] = str_replace(['{min}', '{current}'], [$min_total, $total_in_category], $msg_total);
         }
@@ -250,9 +271,8 @@ class Seedling_Limiter
     /**
      * Returns quantity of a variation currently in the cart.
      *
-     * Retrieves the requested variation ID from the query string, validates it
-     * and returns the total quantity of that variation found in the cart. The
-     * method gracefully handles missing or non-numeric values.
+     * SRP: отдаёт количество конкретной вариации через AJAX.
+     * Вызывается из скрипта seedling-product-limit.js.
      */
     public function get_cart_qty(): void
     {
@@ -269,7 +289,7 @@ class Seedling_Limiter
 
         $sum = 0;
 
-        // Iterate over the cart and sum the quantities for the requested variation
+        // Подсчитываем сумму по всем позициям корзины для этой вариации
         foreach (WC()->cart->get_cart() as $item) {
             if ((int) $item['variation_id'] === $variation_id) {
                 $sum += (int) $item['quantity'];
@@ -281,9 +301,13 @@ class Seedling_Limiter
 
     /**
      * Enqueues script that limits quantity selection on product page.
+     *
+     * SRP: подключает seedling-product-limit.js и
+     * передает ему настройки через wp_localize_script().
      */
     public function enqueue_product_script(): void
     {
+        // Скрипт нужен только на страницах товара
         if (!is_product()) {
             return;
         }
@@ -310,14 +334,17 @@ class Seedling_Limiter
     /**
      * Подключает скрипт проверки корзины.
      *
+     * SRP: загружает seedling-cart-validation.js и
+     * передает AJAX URL для проверки корзины.
      * Скрипт нужен не только на страницах "Корзина" и "Оформление заказа",
-     * но и на любых страницах, где выводится мини-корзина WooCommerce.
+     * но и там, где выводится мини‑корзина.
      */
     public function enqueue_cart_script(): void
     {
         // Мини-корзина может быть выведена через виджет WooCommerce
         $has_mini_cart = is_active_widget(false, false, 'woocommerce_widget_cart', true);
 
+        // Скрипт нужен только когда есть корзина или мини-корзина
         if (!is_cart() && !is_checkout() && !$has_mini_cart) {
             return;
         }
