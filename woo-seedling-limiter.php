@@ -200,12 +200,13 @@ class Seedling_Limiter
      *
      * ISP: метод занимается только очисткой входящих данных,
      * что упрощает поддержку и тестирование кода.
+     * Сделан публичным для возможности повторного использования вне класса.
      *
      * @param string $input Raw user input from textarea field.
      *
      * @return string Sanitized text safe for storing in the database.
      */
-    private function sanitize_multiline_text(string $input): string
+    public function sanitize_multiline_text(string $input): string
     {
         return sanitize_textarea_field($input);
     }
