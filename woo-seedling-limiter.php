@@ -11,12 +11,12 @@ if (!defined('ABSPATH')) {
 }
 
 /**
- * Main plugin class responsible for registering hooks and handling validation.
+ * Главный класс плагина, который регистрирует хуки и выполняет проверки.
  */
 class Seedling_Limiter
 {
     /**
-     * Nonce action used for AJAX security checks.
+     * Nonce-параметр, используемый для проверки безопасности AJAX-запросов.
      */
     public const NONCE_ACTION = 'seedling-limiter';
     /**
@@ -123,7 +123,7 @@ class Seedling_Limiter
     }
 
     /**
-     * Adds plugin submenu under WooCommerce menu.
+     * Добавляет подменю плагина в меню WooCommerce.
      *
      * SRP: создание страницы настроек и привязка к
      * методу render_settings_page().
@@ -142,7 +142,7 @@ class Seedling_Limiter
 
 
     /**
-     * Renders the settings page for plugin options.
+     * Отвечает за вывод страницы настроек плагина.
      *
      * SRP: вывод формы настроек. Используется только
      * методом add_admin_menu().
@@ -164,7 +164,7 @@ class Seedling_Limiter
     }
 
     /**
-     * Registers all plugin settings displayed on the admin page.
+     * Регистрирует все настройки плагина, показываемые на странице админки.
      *
      * SRP: определяет опции плагина и их поля.
      * Взаимодействует с render_settings_page() для вывода формы.
@@ -254,15 +254,15 @@ class Seedling_Limiter
     }
 
     /**
-     * Sanitizes multiline text fields from the settings page.
+     * Очищает многострочные текстовые поля со страницы настроек.
      *
      * ISP: метод занимается только очисткой входящих данных,
      * что упрощает поддержку и тестирование кода.
      * Сделан публичным для возможности повторного использования вне класса.
      *
-     * @param string $input Raw user input from textarea field.
+     * @param string $input Введённый пользователем текст.
      *
-     * @return string Sanitized text safe for storing in the database.
+     * @return string Очищенный текст для безопасного хранения в базе.
      */
     public function sanitize_multiline_text(string $input): string
     {
@@ -296,9 +296,9 @@ class Seedling_Limiter
     }
 
     /**
-     * Returns the notification template for a single variation.
+     * Возвращает шаблон уведомления для одной вариации.
      *
-     * @return string Template string with placeholders.
+     * @return string Шаблон со значениями по умолчанию.
      */
     private function get_variation_template(): string
     {
@@ -311,9 +311,9 @@ class Seedling_Limiter
     }
 
     /**
-     * Returns the notification template for the category total.
+     * Возвращает шаблон уведомления для всей категории.
      *
-     * @return string Template string with placeholders including {category}.
+     * @return string Шаблон со значениями по умолчанию, включая {category}.
      */
     private function get_total_template(): string
     {
@@ -326,7 +326,7 @@ class Seedling_Limiter
     }
 
     /**
-     * Wraps a value in a <strong> tag for emphasis.
+     * Оборачивает значение в тег <strong> для выделения.
      *
      * SRP: выполняет только выделение переданного текста.
      * Используется при генерации уведомлений.
@@ -341,11 +341,11 @@ class Seedling_Limiter
     }
 
     /**
-     * Returns the human readable category name from its slug.
+     * Возвращает человекочитаемое название категории по её слагу.
      *
-     * @param string $slug Category slug stored in plugin settings.
+     * @param string $slug Слаг категории из настроек плагина.
      *
-     * @return string Category name or slug if term not found.
+     * @return string Название категории или её слаг, если термин не найден.
      */
     private function get_category_name(string $slug): string
     {
@@ -449,12 +449,12 @@ class Seedling_Limiter
             return;
         }
 
-        // Determine whether the call comes from our AJAX handler
-        // to avoid interrupting other WooCommerce AJAX actions.
+        // Определяем, является ли вызов нашим AJAX-запросом
+        // чтобы не мешать другим AJAX-действиям WooCommerce.
         $is_plugin_ajax = wp_doing_ajax() &&
             (($_REQUEST['action'] ?? '') === 'seedling_cart_validation');
 
-        // When called via our AJAX action verify the nonce for security.
+        // При вызове через наш AJAX-обработчик проверяем nonce для безопасности.
         if ($is_plugin_ajax) {
             if (!check_ajax_referer(self::NONCE_ACTION, 'nonce', false)) {
                 wp_send_json_error(['message' => 'Invalid security token'], 403);
@@ -539,22 +539,22 @@ class Seedling_Limiter
     }
 
     /**
-     * Returns quantity of a variation currently in the cart.
+     * Возвращает количество выбранной вариации в корзине.
      *
      * SRP: отдаёт количество конкретной вариации через AJAX.
      * Вызывается из скрипта seedling-product-limit.js.
      */
     public function get_cart_qty(): void
     {
-        // Verify nonce to ensure the request is legitimate
+        // Проверяем nonce для подтверждения подлинности запроса
         if (!check_ajax_referer(self::NONCE_ACTION, 'nonce', false)) {
             wp_send_json_error(['message' => 'Invalid security token'], 403);
         }
 
-        // Obtain the variation ID; absint() ensures a positive integer value
+        // Получаем ID вариации; absint() гарантирует положительное целое значение
         $variation_id = isset($_GET['variation_id']) ? absint($_GET['variation_id']) : 0;
 
-        // Missing or invalid variation ID should return a clear error
+        // Если ID вариации не указан или некорректен, возвращаем понятную ошибку
         if ($variation_id === 0) {
             wp_send_json_error(['message' => 'Invalid or missing variation_id']);
         }
@@ -829,8 +829,8 @@ class Seedling_Limiter
                 $this->get_variation_template()
             );
 
-            // Add a notice only during regular (non-AJAX) requests to prevent
-            // outdated messages from appearing later, e.g. on the checkout page.
+            // Добавляем уведомление только во время обычных запросов (не AJAX), чтобы предотвратить
+            // появление устаревших сообщений позже, например на странице оформления заказа.
             if (!wp_doing_ajax()) {
                 wc_add_notice($message, 'error');
             }
@@ -840,7 +840,7 @@ class Seedling_Limiter
 
 
 /**
- * Initializes the plugin only after all plugins are loaded.
+ * Инициализирует плагин только после загрузки всех остальных.
  *
  * SRP: проверяет наличие WooCommerce и создаёт экземпляр
  * Seedling_Limiter только при активном WooCommerce. Это
@@ -862,7 +862,7 @@ add_action('plugins_loaded', static function (): void {
 });
 
 /**
- * Handles plugin activation by creating default options if they are missing.
+ * Обрабатывает активацию плагина, создавая опции по умолчанию при их отсутствии.
  *
  * SRP: гарантирует наличие всех необходимых опций с адекватными значениями
  * по умолчанию и не затрагивает пользовательские настройки.
@@ -885,7 +885,7 @@ function seedling_limiter_activate(): void
 }
 
 /**
- * Handles plugin uninstallation by removing plugin options.
+ * Удаляет опции плагина при его удалении.
  *
  * SRP: удаляет все настройки плагина, чтобы не оставлять данные в базе.
  */

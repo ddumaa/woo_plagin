@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     /**
-     * Binds event listeners to the quantity input and minus button.
+     * Привязывает обработчики к полю количества и кнопке минус.
      *
      * SRP: отвечает только за присоединение обработчиков для поля
      * количества и кнопки уменьшения.
@@ -116,8 +116,8 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     /**
-     * Activates or disables the minus button based on current quantity.
-     * Prevents decreasing below the enforced minimum value.
+     * Активирует или отключает кнопку минус в зависимости от текущего количества.
+     * Не позволяет уменьшить значение ниже установленного минимума.
      */
     function updateMinusButtonState() {
         if (!boundMinusBtn) return;
