@@ -321,13 +321,16 @@ class Seedling_Limiter
      * @param int      $product_id   ID of the product being added.
      * @param int      $quantity     Quantity requested by the customer.
      * @param int|null $variation_id ID of the variation being added.
+     * @param array    $variations   Массив атрибутов выбранной вариации.
      *
      * @return bool Whether the add to cart action is allowed.
      */
-    public function validate_add_to_cart($passed, $product_id, $quantity, $variation_id = null)
+    public function validate_add_to_cart($passed, $product_id, $quantity, $variation_id = null, $variations = [])
     {
         $slug    = get_option('woo_seedling_category_slug', 'seedling');
         $min_qty = (int) get_option('woo_seedling_min_variation', 5);
+        // Пятый аргумент $variations присутствует для совместимости с фильтром,
+        // но логика метода не зависит от его содержимого.
         if (!$variation_id) {
             return $passed;
         }
@@ -697,12 +700,19 @@ class Seedling_Limiter
      * Отмечает элементы корзины специальным классом при совпадении категории.
      *
      * SRP: только добавляет CSS‑класс без изменения других данных.
+     *
+     * @param string $classes      Строка с CSS‑классами элемента.
+     * @param array  $cart_item    Данные товара из корзины.
+     * @param string $cart_item_key Ключ текущего товара в корзине.
+     *
+     * @return string Обновлённая строка классов элемента корзины.
      */
-    public function mark_cart_item(array $classes, array $cart_item, string $cart_item_key): array
+    public function mark_cart_item(string $classes, array $cart_item, string $cart_item_key): string
     {
         $slug = get_option('woo_seedling_category_slug', 'seedling');
+
         if (has_term($slug, 'product_cat', $cart_item['product_id'])) {
-            $classes[] = 'seedling-category-item';
+            $classes = "$classes seedling-category-item";
         }
 
         return $classes;
@@ -735,7 +745,11 @@ class Seedling_Limiter
                 $this->get_variation_template()
             );
 
-            wc_add_notice($message, 'error');
+            // Add a notice only during regular (non-AJAX) requests to prevent
+            // outdated messages from appearing later, e.g. on the checkout page.
+            if (!wp_doing_ajax()) {
+                wc_add_notice($message, 'error');
+            }
         }
     }
 }
