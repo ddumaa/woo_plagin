@@ -31,3 +31,12 @@ terser assets/js/seedling-cart-validation.js -o assets/js/seedling-cart-validati
 ```
 
 Ensure minified files stay in sync with their sources before committing.
+
+## Mini Cart Support
+If your custom theme does not detect a mini cart automatically, you can enable it manually by adding the following snippet to your `functions.php`:
+
+```php
+add_filter( 'seedling_limiter_has_mini_cart', '__return_true' );
+```
+
+This filter forces the plugin to treat the mini cart as enabled, allowing JavaScript checks to work correctly.
