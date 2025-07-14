@@ -553,9 +553,6 @@ function seedling_limiter_activate(): void
 
 
 // Регистрация хука активации плагина. Привязываем его к функции
-// seedling_limiter_activate(), чтобы отделить инициализацию от остальных задач.
-add_action('plugins_loaded', function () {
-    if (class_exists('Seedling_Limiter')) {
-        register_activation_hook(__FILE__, 'seedling_limiter_activate');
-    }
-});
+// seedling_limiter_activate(), чтобы WordPress сделал необходимые действия
+// сразу после активации плагина.
+register_activation_hook(__FILE__, 'seedling_limiter_activate');
