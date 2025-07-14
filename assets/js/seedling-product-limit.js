@@ -75,8 +75,22 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     /**
+     * Применяет минимальное значение к полю количества и уведомляет
+     * другие скрипты об изменении через событие change.
+     * SRP: только устанавливает значение и атрибуты поля.
+     *
+     * @param {number} value Минимально допустимое количество.
+     */
+    function applyQty(value) {
+        qtyInput.value = value;
+        qtyInput.min = value;
+        qtyInput.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    /**
      * Получает количество выбранной вариации в корзине и
      * устанавливает минимально допустимое значение в поле ввода.
+     * SRP: вычисляет требуемый минимум и обновляет интерфейс.
      */
     function checkAndUpdateQuantity() {
         const variationId = parseInt(variationIdInput.value || '0');
@@ -89,7 +103,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 const alreadyInCart = data.data.quantity || 0;
                 enforcedMin = Math.max(min - alreadyInCart, 1);
 
-                qtyInput.value = enforcedMin;
+                applyQty(enforcedMin);
 
                 // Обновляем обработчики, чтобы избежать дублирования при смене вариаций.
                 qtyInput.removeEventListener('input', handleQtyInput);
@@ -109,9 +123,9 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Пересчитываем минимальное значение при смене вариации.
-    // События woocommerce_variation_select_change и found_variation являются
-    // пользовательскими и генерируются через jQuery, поэтому подключаем
-    // обработчики также через jQuery.
+    // События woocommerce_variation_select_change, found_variation и show_variation
+    // являются пользовательскими и генерируются через jQuery, поэтому
+    // обработчики подключаем также через jQuery.
     jQuery(function ($) {
         $(variationForm).on('woocommerce_variation_select_change', function () {
             // variation_id ещё может быть не установлен
@@ -126,13 +140,20 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // WooCommerce может установить значение позже, поэтому подстрахуемся
             variationIdInput.value = variationId;
-            checkAndUpdateQuantity();
+            setTimeout(checkAndUpdateQuantity, 0);
+        });
+
+        // Дополнительно реагируем на событие show_variation,
+        // которое вызывается после полной инициализации вариации.
+        $(variationForm).on('show_variation', function () {
+            setTimeout(checkAndUpdateQuantity, 0);
         });
     });
 
     // Выполним проверку сразу при загрузке страницы,
-    // если вариация выбрана по умолчанию
-    checkAndUpdateQuantity();
+    // если вариация выбрана по умолчанию. Используем задержку,
+    // чтобы дождаться инициализации скриптов WooCommerce.
+    setTimeout(checkAndUpdateQuantity, 0);
 	
     // Отслеживаем процесс добавления товара в корзину,
     // чтобы при ошибке показать сообщение из сессии WooCommerce.
