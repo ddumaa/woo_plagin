@@ -36,7 +36,18 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         qtyInput?.addEventListener('input', enforce);
-        minusBtn?.addEventListener('click', () => setTimeout(enforce, 50));
+        // При клике на "минус" предотвращаем действие, если кнопка уже
+        // заблокирована. Это гарантирует соблюдение минимального
+        // количества товара. После изменения WooCommerce обновит DOM, поэтому
+        // вызываем enforce с небольшой задержкой.
+        minusBtn?.addEventListener('click', (e) => {
+            if (minusBtn.disabled) {
+                e.preventDefault();
+                e.stopPropagation();
+                return;
+            }
+            setTimeout(enforce, 50);
+        });
         enforce();
     }
 
