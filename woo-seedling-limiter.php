@@ -370,8 +370,13 @@ class Seedling_Limiter
      */
     public function validate_cart(): void
     {
-        // When called via AJAX verify the nonce
-        if (defined('DOING_AJAX') && DOING_AJAX) {
+        // Determine whether the call comes from our AJAX handler
+        // to avoid interrupting other WooCommerce AJAX actions.
+        $is_plugin_ajax = wp_doing_ajax() &&
+            (($_REQUEST['action'] ?? '') === 'seedling_validate_cart_full');
+
+        // When called via our AJAX action verify the nonce for security.
+        if ($is_plugin_ajax) {
             check_ajax_referer(self::NONCE_ACTION, 'nonce');
         }
 
@@ -400,7 +405,7 @@ class Seedling_Limiter
 
         // Прерываемся, если подходящих товаров в корзине нет
         if ($total_in_category === 0) {
-            if (defined('DOING_AJAX') && DOING_AJAX) {
+            if ($is_plugin_ajax) {
                 // Для AJAX-сценария сразу возвращаем успешный ответ
                 wp_send_json(['valid' => true, 'messages' => []]);
             }
@@ -431,7 +436,7 @@ class Seedling_Limiter
             );
         }
 
-        if (defined('DOING_AJAX') && DOING_AJAX) {
+        if ($is_plugin_ajax) {
             wp_send_json([
                 'valid'    => empty($errors),
                 'messages' => $errors,
