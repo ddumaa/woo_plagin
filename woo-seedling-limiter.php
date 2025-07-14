@@ -29,6 +29,47 @@ class Seedling_Limiter
     public const DEFAULT_MSG_TOTAL = 'Общее количество товаров из категории {category} должно быть не менее {min}. Сейчас — {current}.';
 
     /**
+     * Значения по умолчанию для настроек плагина.
+     */
+    private const DEFAULT_CATEGORY_SLUG  = 'seedling';
+    private const DEFAULT_MIN_VARIATION  = 5;
+    private const DEFAULT_MIN_TOTAL      = 20;
+
+    /** @var string Слаг категории саженцев. */
+    private string $category_slug = self::DEFAULT_CATEGORY_SLUG;
+    /** @var int Минимальное количество на вариацию. */
+    private int $min_variation = self::DEFAULT_MIN_VARIATION;
+    /** @var int Общий минимум по категории. */
+    private int $min_total = self::DEFAULT_MIN_TOTAL;
+    /** @var string Сообщение для вариации. */
+    private string $msg_variation = '';
+    /** @var string Сообщение для всей категории. */
+    private string $msg_total = '';
+
+    /**
+     * Загружает значения настроек из базы данных в свойства.
+     *
+     * SRP: инициализация всех параметров плагина.
+     */
+    private function load_options(): void
+    {
+        $this->category_slug = (string) get_option(
+            'woo_seedling_category_slug',
+            self::DEFAULT_CATEGORY_SLUG
+        );
+        $this->min_variation = (int) get_option(
+            'woo_seedling_min_variation',
+            self::DEFAULT_MIN_VARIATION
+        );
+        $this->min_total = (int) get_option(
+            'woo_seedling_min_total',
+            self::DEFAULT_MIN_TOTAL
+        );
+        $this->msg_variation = (string) get_option('woo_seedling_msg_variation', '');
+        $this->msg_total = (string) get_option('woo_seedling_msg_total', '');
+    }
+
+    /**
      * Seedling_Limiter constructor.
      *
      * Single responsibility: подключить все хуки WordPress,
@@ -37,8 +78,23 @@ class Seedling_Limiter
      */
     public function __construct()
     {
+        // Загружаем параметры плагина при инициализации.
+        $this->load_options();
+
         add_action('admin_menu', [$this, 'add_admin_menu']);
         add_action('admin_init', [$this, 'register_settings']);
+
+        // Обновляем свойства после сохранения настроек.
+        $options = [
+            'woo_seedling_category_slug',
+            'woo_seedling_min_variation',
+            'woo_seedling_min_total',
+            'woo_seedling_msg_variation',
+            'woo_seedling_msg_total',
+        ];
+        foreach ($options as $option) {
+            add_action("update_option_{$option}", [$this, 'load_options']);
+        }
 
         add_filter(
             'woocommerce_add_to_cart_validation',
@@ -147,8 +203,7 @@ class Seedling_Limiter
             'woo_seedling_category_slug',
             'Слаг категории',
             function () {
-                $value = get_option('woo_seedling_category_slug', 'seedling');
-                echo "<input type='text' name='woo_seedling_category_slug' value='" . esc_attr($value) . "' />";
+                echo "<input type='text' name='woo_seedling_category_slug' value='" . esc_attr($this->category_slug) . "' />";
             },
             'woo-seedling-limit',
             'woo_seedling_main'
@@ -158,8 +213,7 @@ class Seedling_Limiter
             'woo_seedling_min_variation',
             'Минимум на вариацию',
             function () {
-                $value = get_option('woo_seedling_min_variation', 5);
-                echo "<input type='number' name='woo_seedling_min_variation' value='" . esc_attr($value) . "' min='1' />";
+                echo "<input type='number' name='woo_seedling_min_variation' value='" . esc_attr($this->min_variation) . "' min='1' />";
             },
             'woo-seedling-limit',
             'woo_seedling_main'
@@ -169,8 +223,7 @@ class Seedling_Limiter
             'woo_seedling_min_total',
             'Общий минимум по категории',
             function () {
-                $value = get_option('woo_seedling_min_total', 20);
-                echo "<input type='number' name='woo_seedling_min_total' value='" . esc_attr($value) . "' min='1' />";
+                echo "<input type='number' name='woo_seedling_min_total' value='" . esc_attr($this->min_total) . "' min='1' />";
             },
             'woo-seedling-limit',
             'woo_seedling_main'
@@ -180,9 +233,8 @@ class Seedling_Limiter
             'woo_seedling_msg_variation',
             'Сообщение (для вариации < минимума)',
             function () {
-                $value       = get_option('woo_seedling_msg_variation', '');
                 $placeholder = self::DEFAULT_MSG_VARIATION;
-                echo "<input type='text' name='woo_seedling_msg_variation' value='" . esc_attr($value) . "' placeholder='" . esc_attr($placeholder) . "' style='width: 100%' />";
+                echo "<input type='text' name='woo_seedling_msg_variation' value='" . esc_attr($this->msg_variation) . "' placeholder='" . esc_attr($placeholder) . "' style='width: 100%' />";
             },
             'woo-seedling-limit',
             'woo_seedling_main'
@@ -192,11 +244,9 @@ class Seedling_Limiter
             'woo_seedling_msg_total',
             'Сообщение (общее < минимума)',
             function () {
-                $value       = get_option('woo_seedling_msg_total', '');
-                $slug        = get_option('woo_seedling_category_slug', 'seedling');
-                $category    = $this->get_category_name($slug);
+                $category    = $this->get_category_name($this->category_slug);
                 $placeholder = str_replace('{category}', $category, self::DEFAULT_MSG_TOTAL);
-                echo "<input type='text' name='woo_seedling_msg_total' value='" . esc_attr($value) . "' placeholder='" . esc_attr($placeholder) . "' style='width: 100%' />";
+                echo "<input type='text' name='woo_seedling_msg_total' value='" . esc_attr($this->msg_total) . "' placeholder='" . esc_attr($placeholder) . "' style='width: 100%' />";
             },
             'woo-seedling-limit',
             'woo_seedling_main'
@@ -252,8 +302,8 @@ class Seedling_Limiter
      */
     private function get_variation_template(): string
     {
-        $msg = get_option('woo_seedling_msg_variation');
-        if (trim((string) $msg) === '') {
+        $msg = trim((string) $this->msg_variation);
+        if ($msg === '') {
             $msg = self::DEFAULT_MSG_VARIATION;
         }
 
@@ -267,12 +317,27 @@ class Seedling_Limiter
      */
     private function get_total_template(): string
     {
-        $msg = get_option('woo_seedling_msg_total');
-        if (trim((string) $msg) === '') {
+        $msg = trim((string) $this->msg_total);
+        if ($msg === '') {
             $msg = self::DEFAULT_MSG_TOTAL;
         }
 
         return $msg;
+    }
+
+    /**
+     * Wraps a value in a <strong> tag for emphasis.
+     *
+     * SRP: выполняет только выделение переданного текста.
+     * Используется при генерации уведомлений.
+     *
+     * @param string|int $value Значение для выделения.
+     *
+     * @return string Экранированная строка в тегах <strong>.
+     */
+    private function wrap_strong($value): string
+    {
+        return '<strong>' . esc_html($value) . '</strong>';
     }
 
     /**
@@ -327,8 +392,8 @@ class Seedling_Limiter
      */
     public function validate_add_to_cart($passed, $product_id, $quantity, $variation_id = null, $variations = [])
     {
-        $slug    = get_option('woo_seedling_category_slug', 'seedling');
-        $min_qty = (int) get_option('woo_seedling_min_variation', 5);
+        $slug    = $this->category_slug;
+        $min_qty = $this->min_variation;
         // Пятый аргумент $variations присутствует для совместимости с фильтром,
         // но логика метода не зависит от его содержимого.
         if (!$variation_id) {
@@ -355,7 +420,12 @@ class Seedling_Limiter
             $template  = $this->get_variation_template();
             $message = str_replace(
                 ['{min}', '{name}', '{attr}', '{current}'],
-                [$min_qty, $name, $attrs, $new_total],
+                [
+                    $this->wrap_strong($min_qty),
+                    $this->wrap_strong($name),
+                    $this->wrap_strong($attrs),
+                    $this->wrap_strong($new_total),
+                ],
                 $template
             );
             wc_add_notice($message, 'error');
@@ -391,9 +461,9 @@ class Seedling_Limiter
             }
         }
 
-        $slug      = get_option('woo_seedling_category_slug', 'seedling');
-        $min_qty   = (int) get_option('woo_seedling_min_variation', 5);
-        $min_total = (int) get_option('woo_seedling_min_total', 20);
+        $slug      = $this->category_slug;
+        $min_qty   = $this->min_variation;
+        $min_total = $this->min_total;
         $msg_var   = $this->get_variation_template();
         $msg_total = $this->get_total_template();
         $category  = $this->get_category_name($slug);
@@ -432,7 +502,12 @@ class Seedling_Limiter
                 $attrs     = $variation instanceof WC_Product_Variation ? $this->format_variation_attributes($variation) : '';
                 $errors[]  = str_replace(
                     ['{min}', '{name}', '{attr}', '{current}'],
-                    [$min_qty, $name, $attrs, $qty],
+                    [
+                        $this->wrap_strong($min_qty),
+                        $this->wrap_strong($name),
+                        $this->wrap_strong($attrs),
+                        $this->wrap_strong($qty),
+                    ],
                     $msg_var
                 );
             }
@@ -442,7 +517,11 @@ class Seedling_Limiter
         if ($total_in_category < $min_total) {
             $errors[] = str_replace(
                 ['{min}', '{current}', '{category}'],
-                [$min_total, $total_in_category, $category],
+                [
+                    $this->wrap_strong($min_total),
+                    $this->wrap_strong($total_in_category),
+                    $this->wrap_strong($category),
+                ],
                 $msg_total
             );
         }
@@ -493,8 +572,8 @@ class Seedling_Limiter
      */
     public function update_quantity_args(array $args, WC_Product $product): array
     {
-        $slug = get_option('woo_seedling_category_slug', 'seedling');
-        $min  = (int) get_option('woo_seedling_min_variation', 5);
+        $slug = $this->category_slug;
+        $min  = $this->min_variation;
 
         $parent_id = $product instanceof WC_Product_Variation
             ? $product->get_parent_id()
@@ -529,12 +608,12 @@ class Seedling_Limiter
      */
     public function update_available_variation(array $data, WC_Product $parent, WC_Product_Variation $variation): array
     {
-        $slug = get_option('woo_seedling_category_slug', 'seedling');
+        $slug = $this->category_slug;
         if (!has_term($slug, 'product_cat', $parent->get_id())) {
             return $data;
         }
 
-        $min     = (int) get_option('woo_seedling_min_variation', 5);
+        $min     = $this->min_variation;
         $current = $this->get_variation_cart_quantity($variation->get_id());
         $minimum = max($min - $current, 1);
 
@@ -571,8 +650,8 @@ class Seedling_Limiter
             'seedling-product-limit',
             'seedlingProductSettings',
             [
-                'minQty'  => (int) get_option('woo_seedling_min_variation', 5),
-                'slug'    => get_option('woo_seedling_category_slug', 'seedling'),
+                'minQty'  => $this->min_variation,
+                'slug'    => $this->category_slug,
                 'nonce'   => wp_create_nonce(self::NONCE_ACTION),
                 'ajaxUrl' => admin_url('admin-ajax.php'),
             ]
@@ -663,8 +742,8 @@ class Seedling_Limiter
             'seedling-mini-cart-limit',
             'seedlingMiniCartSettings',
             [
-                'minQty' => (int) get_option('woo_seedling_min_variation', 5),
-                'slug'   => get_option('woo_seedling_category_slug', 'seedling'),
+                'minQty' => $this->min_variation,
+                'slug'   => $this->category_slug,
             ]
         );
     }
@@ -692,7 +771,7 @@ class Seedling_Limiter
             'seedling-cart-limit',
             'seedlingCartLimitSettings',
             [
-                'minQty' => (int) get_option('woo_seedling_min_variation', 5),
+                'minQty' => $this->min_variation,
             ]
         );
     }
@@ -709,7 +788,7 @@ class Seedling_Limiter
      */
     public function mark_cart_item(string $classes, array $cart_item, string $cart_item_key): string
     {
-        $slug = get_option('woo_seedling_category_slug', 'seedling');
+        $slug = $this->category_slug;
 
         if (has_term($slug, 'product_cat', $cart_item['product_id'])) {
             $classes = "$classes seedling-category-item";
@@ -725,8 +804,8 @@ class Seedling_Limiter
      */
     public function enforce_cart_item_min(string $cart_item_key, int $quantity, int $old_quantity, WC_Cart $cart): void
     {
-        $slug = get_option('woo_seedling_category_slug', 'seedling');
-        $min  = (int) get_option('woo_seedling_min_variation', 5);
+        $slug = $this->category_slug;
+        $min  = $this->min_variation;
 
         $item = $cart->cart_contents[$cart_item_key] ?? null;
         if (!$item || !has_term($slug, 'product_cat', $item['product_id'])) {
@@ -741,7 +820,12 @@ class Seedling_Limiter
             $attrs     = $variation instanceof WC_Product_Variation ? $this->format_variation_attributes($variation) : '';
             $message   = str_replace(
                 ['{min}', '{name}', '{attr}', '{current}'],
-                [$min, $name, $attrs, $quantity],
+                [
+                    $this->wrap_strong($min),
+                    $this->wrap_strong($name),
+                    $this->wrap_strong($attrs),
+                    $this->wrap_strong($quantity),
+                ],
                 $this->get_variation_template()
             );
 
