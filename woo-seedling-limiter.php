@@ -10,6 +10,9 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+define('SEEDLING_MSG_VARIATION_DEFAULT', 'Минимальное количество для {name} ({attr}) — {min} шт. Сейчас — {current}.');
+define('SEEDLING_MSG_TOTAL_DEFAULT', 'Общее количество товаров из категории {category} должно быть не менее {min}. Сейчас — {current}.');
+
 /**
  * Main plugin class responsible for registering hooks and handling validation.
  */
@@ -27,6 +30,7 @@ class Seedling_Limiter
      * Шаблон уведомления по умолчанию для всей категории.
      */
     private const DEFAULT_MSG_TOTAL = 'Общее количество товаров из категории {category} должно быть не менее {min}. Сейчас — {current}.';
+
     /**
      * Seedling_Limiter constructor.
      *
@@ -538,17 +542,17 @@ function seedling_limiter_activate(): void
         'woo_seedling_category_slug' => 'seedling',
         'woo_seedling_min_variation' => 5,
         'woo_seedling_min_total'     => 20,
-        'woo_seedling_msg_variation' => Seedling_Limiter::DEFAULT_MSG_VARIATION,
-        'woo_seedling_msg_total'     => Seedling_Limiter::DEFAULT_MSG_TOTAL,
+        'woo_seedling_msg_variation' => SEEDLING_MSG_VARIATION_DEFAULT,
+        'woo_seedling_msg_total'     => SEEDLING_MSG_TOTAL_DEFAULT,
     ];
 
     foreach ($defaults as $option => $value) {
-        // Создаём опцию только при её отсутствии
         if (get_option($option) === false) {
             add_option($option, $value);
         }
     }
 }
+
 
 // Регистрация хука активации плагина. Привязываем его к функции
 // seedling_limiter_activate(), чтобы отделить инициализацию от остальных задач.
