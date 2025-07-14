@@ -200,12 +200,13 @@ class Seedling_Limiter
      *
      * ISP: метод занимается только очисткой входящих данных,
      * что упрощает поддержку и тестирование кода.
+     * Сделан публичным для возможности повторного использования вне класса.
      *
      * @param string $input Raw user input from textarea field.
      *
      * @return string Sanitized text safe for storing in the database.
      */
-    private function sanitize_multiline_text(string $input): string
+    public function sanitize_multiline_text(string $input): string
     {
         return sanitize_textarea_field($input);
     }
@@ -502,7 +503,28 @@ class Seedling_Limiter
     }
 }
 
-new Seedling_Limiter();
+
+/**
+ * Initializes the plugin only after all plugins are loaded.
+ *
+ * SRP: проверяет наличие WooCommerce и создаёт экземпляр
+ * Seedling_Limiter только при активном WooCommerce. Это
+ * предотвращает фатальные ошибки при активации плагина.
+ */
+add_action('plugins_loaded', static function (): void {
+    if (!class_exists('WooCommerce')) {
+        // Показываем уведомление в админке, если WooCommerce не активен
+        add_action('admin_notices', static function (): void {
+            echo '<div class="error"><p>'
+                . esc_html__('WooCommerce Seedling Quantity Limiter requires WooCommerce to be installed and active.', 'woo-seedling-limiter')
+                . '</p></div>';
+        });
+
+        return;
+    }
+
+    new Seedling_Limiter();
+});
 
 /**
  * Handles plugin activation by creating default options if they are missing.
