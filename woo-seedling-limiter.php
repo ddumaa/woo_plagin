@@ -398,6 +398,16 @@ class Seedling_Limiter
             $total_in_category += $item['quantity'];
         }
 
+        // Прерываемся, если подходящих товаров в корзине нет
+        if ($total_in_category === 0) {
+            if (defined('DOING_AJAX') && DOING_AJAX) {
+                // Для AJAX-сценария сразу возвращаем успешный ответ
+                wp_send_json(['valid' => true, 'messages' => []]);
+            }
+
+            return;
+        }
+
         // Формируем сообщения об ошибках для вариаций
         foreach ($variation_quantities as $variation_id => $qty) {
             if ($qty < $min_qty) {
