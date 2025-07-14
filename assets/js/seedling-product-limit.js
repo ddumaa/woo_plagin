@@ -10,9 +10,13 @@ document.addEventListener('DOMContentLoaded', function () {
     const body = document.body;
     // Основная форма выбора вариаций
     const variationForm = document.querySelector('form.variations_form');
-    // Скрытое поле с выбранной вариацией. Обычно существует всегда,
-    // но значение заполняется после выбора вариации.
-    const variationIdInput = document.querySelector('input[name="variation_id"]');
+
+    // Скрытое поле с выбранной вариацией может создаваться динамически,
+    // поэтому каждый раз ищем его заново. Метод ограничен только поиском
+    // элемента в DOM и следует принципу SRP.
+    function getVariationIdInput() {
+        return document.querySelector('input[name="variation_id"]');
+    }
 
     // Проверяем, существует ли форма выбора вариации. Если её нет,
     // обработчики событий не назначаются, чтобы избежать ошибок.
@@ -29,7 +33,6 @@ document.addEventListener('DOMContentLoaded', function () {
     function getQtyInput() {
         return document.querySelector('input.qty');
     }
-    if (!variationIdInput) return;
 
     // Фактический минимум, разрешённый в поле количества.
     // Значение изменяется функцией checkAndUpdateQuantity.
@@ -107,7 +110,8 @@ document.addEventListener('DOMContentLoaded', function () {
      * SRP: вычисляет требуемый минимум и обновляет интерфейс.
      */
     function checkAndUpdateQuantity() {
-        const variationId = parseInt(variationIdInput.value || '0');
+        const variationInput = getVariationIdInput();
+        const variationId = parseInt(variationInput?.value || '0');
         if (!variationId) return;
 
         const url = `${seedlingProductSettings.ajaxUrl}?action=seedling_get_cart_qty&variation_id=${variationId}&nonce=${seedlingProductSettings.nonce}`;
@@ -157,7 +161,10 @@ document.addEventListener('DOMContentLoaded', function () {
             if (!variationId) return;
 
             // WooCommerce может установить значение позже, поэтому подстрахуемся
-            variationIdInput.value = variationId;
+            const variationInput = getVariationIdInput();
+            if (variationInput) {
+                variationInput.value = variationId;
+            }
             setTimeout(checkAndUpdateQuantity, 0);
         });
 
