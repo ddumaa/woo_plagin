@@ -113,14 +113,14 @@ document.addEventListener('DOMContentLoaded', function () {
             });
     }
 
-    // Выполняем проверку сразу после загрузки документа и следим за изменениями DOM
+    // Выполняем проверку сразу после загрузки страницы
     checkCart();
-    // Следим за изменениями DOM, чтобы вовремя обновлять состояние кнопок
-    const mo = new MutationObserver(checkCart);
-    mo.observe(document.body, { childList: true, subtree: true });
 
-    // После обновления фрагментов WooCommerce (например, мини‑корзины) также
-    // повторяем проверку, чтобы состояние кнопок всегда было актуальным.
-    // Повторная проверка при обновлении фрагментов WooCommerce
+    // Проверяем корзину при обновлении фрагментов WooCommerce
+    // (обновление мини‑корзины или блока корзины на странице)
     jQuery(document.body).on('wc_fragments_refreshed updated_wc_div', checkCart);
+
+    // Отдельно реагируем на изменение количества товаров в строках корзины,
+    // чтобы не отслеживать весь DOM наблюдателем и избежать лишних срабатываний
+    jQuery(document.body).on('change', '.cart_item input.qty', checkCart);
 });
