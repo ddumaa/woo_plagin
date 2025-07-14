@@ -121,11 +121,25 @@ document.addEventListener('DOMContentLoaded', function () {
     // Выполняем проверку сразу после загрузки страницы
     checkCart();
 
+    // Функция-декоратор, откладывающая вызов переданной функции и отменяющая
+    // предыдущий запуск, если он ещё не произошёл. Используется для того,
+    // чтобы при множественных изменениях количества товаров отправлять
+    // единственный AJAX-запрос проверки.
+    function debounce(fn, delay) {
+        let timer;
+        return function (...args) {
+            clearTimeout(timer);
+            timer = setTimeout(() => fn.apply(this, args), delay);
+        };
+    }
+
+    const debouncedCheckCart = debounce(checkCart, 300);
+
     // Проверяем корзину при обновлении фрагментов WooCommerce
     // (обновление мини‑корзины или блока корзины на странице)
-    jQuery(document.body).on('wc_fragments_refreshed updated_wc_div', checkCart);
+    jQuery(document.body).on('wc_fragments_refreshed updated_wc_div', debouncedCheckCart);
 
     // Отдельно реагируем на изменение количества товаров в строках корзины,
     // чтобы не отслеживать весь DOM наблюдателем и избежать лишних срабатываний
-    jQuery(document.body).on('change', '.cart_item input.qty', checkCart);
+    jQuery(document.body).on('change', '.cart_item input.qty', debouncedCheckCart);
 });
