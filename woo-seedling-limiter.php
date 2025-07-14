@@ -745,7 +745,11 @@ class Seedling_Limiter
                 $this->get_variation_template()
             );
 
-            wc_add_notice($message, 'error');
+            // Add a notice only during regular (non-AJAX) requests to prevent
+            // outdated messages from appearing later, e.g. on the checkout page.
+            if (!wp_doing_ajax()) {
+                wc_add_notice($message, 'error');
+            }
         }
     }
 }
