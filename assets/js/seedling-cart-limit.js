@@ -36,7 +36,17 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         qtyInput?.addEventListener('input', enforce);
-        minusBtn?.addEventListener('click', () => setTimeout(enforce, 50));
+        // При клике на "минус" проверяем, активна ли кнопка.
+        // Принцип единственной ответственности соблюдается: функция
+        // обрабатывает только логику ограничения ввода.
+        minusBtn?.addEventListener('click', (e) => {
+            if (minusBtn.disabled) {
+                e.preventDefault();
+                e.stopPropagation();
+                return;
+            }
+            setTimeout(enforce, 50);
+        });
         enforce();
     }
 
