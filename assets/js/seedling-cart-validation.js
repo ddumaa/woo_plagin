@@ -110,6 +110,11 @@ document.addEventListener('DOMContentLoaded', function () {
                     showMessages(messages);
                     disableBtns(true);
                 }
+            })
+            .catch(() => {
+                // При сбое запроса сообщаем пользователю и блокируем оформление
+                showMessages(['Ошибка проверки корзины']);
+                disableBtns(true);
             });
     }
 
