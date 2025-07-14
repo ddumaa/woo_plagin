@@ -697,12 +697,19 @@ class Seedling_Limiter
      * Отмечает элементы корзины специальным классом при совпадении категории.
      *
      * SRP: только добавляет CSS‑класс без изменения других данных.
+     *
+     * @param string $classes      Строка с CSS‑классами элемента.
+     * @param array  $cart_item    Данные товара из корзины.
+     * @param string $cart_item_key Ключ текущего товара в корзине.
+     *
+     * @return string Обновлённая строка классов элемента корзины.
      */
-    public function mark_cart_item(array $classes, array $cart_item, string $cart_item_key): array
+    public function mark_cart_item(string $classes, array $cart_item, string $cart_item_key): string
     {
         $slug = get_option('woo_seedling_category_slug', 'seedling');
+
         if (has_term($slug, 'product_cat', $cart_item['product_id'])) {
-            $classes[] = 'seedling-category-item';
+            $classes = "$classes seedling-category-item";
         }
 
         return $classes;
