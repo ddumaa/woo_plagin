@@ -321,13 +321,16 @@ class Seedling_Limiter
      * @param int      $product_id   ID of the product being added.
      * @param int      $quantity     Quantity requested by the customer.
      * @param int|null $variation_id ID of the variation being added.
+     * @param array    $variations   Массив атрибутов выбранной вариации.
      *
      * @return bool Whether the add to cart action is allowed.
      */
-    public function validate_add_to_cart($passed, $product_id, $quantity, $variation_id = null)
+    public function validate_add_to_cart($passed, $product_id, $quantity, $variation_id = null, $variations = [])
     {
         $slug    = get_option('woo_seedling_category_slug', 'seedling');
         $min_qty = (int) get_option('woo_seedling_min_variation', 5);
+        // Пятый аргумент $variations присутствует для совместимости с фильтром,
+        // но логика метода не зависит от его содержимого.
         if (!$variation_id) {
             return $passed;
         }
