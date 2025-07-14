@@ -42,6 +42,28 @@ document.addEventListener('DOMContentLoaded', function () {
     let boundMinusBtn = null;
 
     /**
+     * Показывает сообщение об ошибке в стиле WooCommerce.
+     *
+     * SRP: отвечает только за вывод уведомления пользователю.
+     *
+     * @param {string} msg Текст ошибки для отображения.
+     */
+    function showError(msg) {
+        let wrapper = document.querySelector('.woocommerce-notices-wrapper');
+        if (!wrapper) {
+            wrapper = document.createElement('div');
+            wrapper.className = 'woocommerce-notices-wrapper';
+            const form = document.querySelector('form.cart');
+            if (form) {
+                form.prepend(wrapper);
+            } else {
+                document.body.prepend(wrapper);
+            }
+        }
+        wrapper.innerHTML = `<ul class="woocommerce-error"><li>${msg}</li></ul>`;
+    }
+
+    /**
      * Binds event listeners to the quantity input and minus button.
      *
      * SRP: отвечает только за присоединение обработчиков для поля
@@ -159,6 +181,18 @@ document.addEventListener('DOMContentLoaded', function () {
                 // и обновляем состояние кнопки
                 attachQtyListeners();
                 updateMinusButtonState();
+            })
+            .catch(() => {
+                // Если запрос не удался, сообщаем пользователю
+                // и блокируем кнопку добавления в корзину,
+                // чтобы избежать некорректного количества в заказе.
+                const btn = document.querySelector('.single_add_to_cart_button');
+                if (btn) {
+                    btn.disabled = true;
+                    btn.classList.add('disabled');
+                    btn.setAttribute('aria-disabled', 'true');
+                }
+                showError('Не удалось проверить минимальное количество');
             });
     }
 
