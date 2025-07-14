@@ -367,9 +367,15 @@ class Seedling_Limiter
      *
      * SRP: проверяет корзину на соответствие установленным ограничениям.
      * Вызывается как действие WooCommerce и через AJAX.
-     */
+    */
     public function validate_cart(): void
     {
+        // Если это любой другой AJAX-запрос, не связанный с нашим плагином,
+        // выходим раньше времени, чтобы не мешать WooCommerce.
+        if (wp_doing_ajax() && (($_REQUEST['action'] ?? '') !== 'seedling_validate_cart_full')) {
+            return;
+        }
+
         // Determine whether the call comes from our AJAX handler
         // to avoid interrupting other WooCommerce AJAX actions.
         $is_plugin_ajax = wp_doing_ajax() &&
