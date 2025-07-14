@@ -48,8 +48,8 @@ class Seedling_Limiter
         );
 
         add_action('woocommerce_checkout_process', [$this, 'validate_cart']);
-        add_action('wp_ajax_seedling_validate_cart_full', [$this, 'validate_cart']);
-        add_action('wp_ajax_nopriv_seedling_validate_cart_full', [$this, 'validate_cart']);
+        add_action('wp_ajax_seedling_cart_validation', [$this, 'validate_cart']);
+        add_action('wp_ajax_nopriv_seedling_cart_validation', [$this, 'validate_cart']);
 
         add_action('wp_ajax_seedling_get_cart_qty', [$this, 'get_cart_qty']);
         add_action('wp_ajax_nopriv_seedling_get_cart_qty', [$this, 'get_cart_qty']);
@@ -372,18 +372,20 @@ class Seedling_Limiter
     {
         // Если это любой другой AJAX-запрос, не связанный с нашим плагином,
         // выходим раньше времени, чтобы не мешать WooCommerce.
-        if (wp_doing_ajax() && (($_REQUEST['action'] ?? '') !== 'seedling_validate_cart_full')) {
+        if (wp_doing_ajax() && (($_REQUEST['action'] ?? '') !== 'seedling_cart_validation')) {
             return;
         }
 
         // Determine whether the call comes from our AJAX handler
         // to avoid interrupting other WooCommerce AJAX actions.
         $is_plugin_ajax = wp_doing_ajax() &&
-            (($_REQUEST['action'] ?? '') === 'seedling_validate_cart_full');
+            (($_REQUEST['action'] ?? '') === 'seedling_cart_validation');
 
         // When called via our AJAX action verify the nonce for security.
         if ($is_plugin_ajax) {
-            check_ajax_referer(self::NONCE_ACTION, 'nonce');
+            if (!check_ajax_referer(self::NONCE_ACTION, 'nonce', false)) {
+                wp_send_json_error(['message' => 'Invalid security token'], 403);
+            }
         }
 
         $slug      = get_option('woo_seedling_category_slug', 'seedling');
@@ -463,7 +465,9 @@ class Seedling_Limiter
     public function get_cart_qty(): void
     {
         // Verify nonce to ensure the request is legitimate
-        check_ajax_referer(self::NONCE_ACTION, 'nonce');
+        if (!check_ajax_referer(self::NONCE_ACTION, 'nonce', false)) {
+            wp_send_json_error(['message' => 'Invalid security token'], 403);
+        }
 
         // Obtain the variation ID; absint() ensures a positive integer value
         $variation_id = isset($_GET['variation_id']) ? absint($_GET['variation_id']) : 0;
@@ -627,7 +631,7 @@ class Seedling_Limiter
             'seedling-cart-validation',
             'seedlingCartSettings',
             [
-                'ajaxUrl' => admin_url('admin-ajax.php?action=seedling_validate_cart_full'),
+                'ajaxUrl' => admin_url('admin-ajax.php?action=seedling_cart_validation'),
                 'nonce'   => wp_create_nonce(self::NONCE_ACTION),
             ]
         );
