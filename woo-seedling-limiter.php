@@ -326,6 +326,21 @@ class Seedling_Limiter
     }
 
     /**
+     * Wraps a value in a <strong> tag for emphasis.
+     *
+     * SRP: выполняет только выделение переданного текста.
+     * Используется при генерации уведомлений.
+     *
+     * @param string|int $value Значение для выделения.
+     *
+     * @return string Экранированная строка в тегах <strong>.
+     */
+    private function wrap_strong($value): string
+    {
+        return '<strong>' . esc_html($value) . '</strong>';
+    }
+
+    /**
      * Returns the human readable category name from its slug.
      *
      * @param string $slug Category slug stored in plugin settings.
@@ -405,7 +420,12 @@ class Seedling_Limiter
             $template  = $this->get_variation_template();
             $message = str_replace(
                 ['{min}', '{name}', '{attr}', '{current}'],
-                [$min_qty, $name, $attrs, $new_total],
+                [
+                    $this->wrap_strong($min_qty),
+                    $this->wrap_strong($name),
+                    $this->wrap_strong($attrs),
+                    $this->wrap_strong($new_total),
+                ],
                 $template
             );
             wc_add_notice($message, 'error');
@@ -482,7 +502,12 @@ class Seedling_Limiter
                 $attrs     = $variation instanceof WC_Product_Variation ? $this->format_variation_attributes($variation) : '';
                 $errors[]  = str_replace(
                     ['{min}', '{name}', '{attr}', '{current}'],
-                    [$min_qty, $name, $attrs, $qty],
+                    [
+                        $this->wrap_strong($min_qty),
+                        $this->wrap_strong($name),
+                        $this->wrap_strong($attrs),
+                        $this->wrap_strong($qty),
+                    ],
                     $msg_var
                 );
             }
@@ -492,7 +517,11 @@ class Seedling_Limiter
         if ($total_in_category < $min_total) {
             $errors[] = str_replace(
                 ['{min}', '{current}', '{category}'],
-                [$min_total, $total_in_category, $category],
+                [
+                    $this->wrap_strong($min_total),
+                    $this->wrap_strong($total_in_category),
+                    $this->wrap_strong($category),
+                ],
                 $msg_total
             );
         }
@@ -791,7 +820,12 @@ class Seedling_Limiter
             $attrs     = $variation instanceof WC_Product_Variation ? $this->format_variation_attributes($variation) : '';
             $message   = str_replace(
                 ['{min}', '{name}', '{attr}', '{current}'],
-                [$min, $name, $attrs, $quantity],
+                [
+                    $this->wrap_strong($min),
+                    $this->wrap_strong($name),
+                    $this->wrap_strong($attrs),
+                    $this->wrap_strong($quantity),
+                ],
                 $this->get_variation_template()
             );
 
