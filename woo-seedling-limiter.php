@@ -2,7 +2,7 @@
 /**
  * Plugin Name: WooCommerce Seedling Quantity Limiter
  * Description: Ограничения на количество товаров из категории: минимум на вариацию и общий минимум по категории.
- * Version: 1.4
+ * Version: 1.6
  * Author: Дмитрий Анисимов
  */
 
@@ -19,6 +19,14 @@ class Seedling_Limiter
      * Nonce action used for AJAX security checks.
      */
     private const NONCE_ACTION = 'seedling-limiter';
+    /**
+     * Шаблон уведомления по умолчанию для одной вариации.
+     */
+    private const DEFAULT_MSG_VARIATION = 'Минимальное количество для {name} ({attr}) — {min} шт. Сейчас — {current}.';
+    /**
+     * Шаблон уведомления по умолчанию для всей категории.
+     */
+    private const DEFAULT_MSG_TOTAL = 'Общее количество товаров из категории {category} должно быть не менее {min}. Сейчас — {current}.';
     /**
      * Seedling_Limiter constructor.
      *
@@ -164,11 +172,9 @@ class Seedling_Limiter
             'woo_seedling_msg_variation',
             'Сообщение (для вариации < минимума)',
             function () {
-                $value = get_option(
-                    'woo_seedling_msg_variation',
-                    'Минимальное количество для {name} ({attr}) — {min} шт. Сейчас — {current}.'
-                );
-                echo "<input type='text' name='woo_seedling_msg_variation' value='" . esc_attr($value) . "' style='width: 100%' />";
+                $value       = get_option('woo_seedling_msg_variation', '');
+                $placeholder = self::DEFAULT_MSG_VARIATION;
+                echo "<input type='text' name='woo_seedling_msg_variation' value='" . esc_attr($value) . "' placeholder='" . esc_attr($placeholder) . "' style='width: 100%' />";
             },
             'woo-seedling-limit',
             'woo_seedling_main'
@@ -178,11 +184,11 @@ class Seedling_Limiter
             'woo_seedling_msg_total',
             'Сообщение (общее < минимума)',
             function () {
-                $value = get_option(
-                    'woo_seedling_msg_total',
-                    'Общее количество товаров из категории должно быть не менее {min}. Сейчас — {current}.'
-                );
-                echo "<input type='text' name='woo_seedling_msg_total' value='" . esc_attr($value) . "' style='width: 100%' />";
+                $value       = get_option('woo_seedling_msg_total', '');
+                $slug        = get_option('woo_seedling_category_slug', 'seedling');
+                $category    = $this->get_category_name($slug);
+                $placeholder = str_replace('{category}', $category, self::DEFAULT_MSG_TOTAL);
+                echo "<input type='text' name='woo_seedling_msg_total' value='" . esc_attr($value) . "' placeholder='" . esc_attr($placeholder) . "' style='width: 100%' />";
             },
             'woo-seedling-limit',
             'woo_seedling_main'
@@ -231,6 +237,50 @@ class Seedling_Limiter
     }
 
     /**
+     * Returns the notification template for a single variation.
+     *
+     * @return string Template string with placeholders.
+     */
+    private function get_variation_template(): string
+    {
+        $msg = get_option('woo_seedling_msg_variation');
+        if (trim((string) $msg) === '') {
+            $msg = self::DEFAULT_MSG_VARIATION;
+        }
+
+        return $msg;
+    }
+
+    /**
+     * Returns the notification template for the category total.
+     *
+     * @return string Template string with placeholders including {category}.
+     */
+    private function get_total_template(): string
+    {
+        $msg = get_option('woo_seedling_msg_total');
+        if (trim((string) $msg) === '') {
+            $msg = self::DEFAULT_MSG_TOTAL;
+        }
+
+        return $msg;
+    }
+
+    /**
+     * Returns the human readable category name from its slug.
+     *
+     * @param string $slug Category slug stored in plugin settings.
+     *
+     * @return string Category name or slug if term not found.
+     */
+    private function get_category_name(string $slug): string
+    {
+        $term = get_term_by('slug', $slug, 'product_cat');
+
+        return $term instanceof WP_Term ? $term->name : $slug;
+    }
+
+    /**
      * Validates adding a product variation to the cart.
      *
      * SRP: проверяет минимальное количество для выбранной вариации.
@@ -268,10 +318,7 @@ class Seedling_Limiter
             $variation = wc_get_product($variation_id);
             $name      = $variation ? $variation->get_name() : '';
             $attrs     = $variation instanceof WC_Product_Variation ? $this->format_variation_attributes($variation) : '';
-            $template  = get_option(
-                'woo_seedling_msg_variation',
-                'Минимальное количество для {name} ({attr}) — {min} шт. Сейчас — {current}.'
-            );
+            $template  = $this->get_variation_template();
             $message = str_replace(
                 ['{min}', '{name}', '{attr}', '{current}'],
                 [$min_qty, $name, $attrs, $new_total],
@@ -300,8 +347,9 @@ class Seedling_Limiter
         $slug      = get_option('woo_seedling_category_slug', 'seedling');
         $min_qty   = (int) get_option('woo_seedling_min_variation', 5);
         $min_total = (int) get_option('woo_seedling_min_total', 20);
-        $msg_var   = get_option('woo_seedling_msg_variation');
-        $msg_total = get_option('woo_seedling_msg_total');
+        $msg_var   = $this->get_variation_template();
+        $msg_total = $this->get_total_template();
+        $category  = $this->get_category_name($slug);
 
         $variation_quantities = [];
         $total_in_category    = 0;
@@ -335,7 +383,11 @@ class Seedling_Limiter
 
         // Проверяем общий минимум по категории
         if ($total_in_category < $min_total) {
-            $errors[] = str_replace(['{min}', '{current}'], [$min_total, $total_in_category], $msg_total);
+            $errors[] = str_replace(
+                ['{min}', '{current}', '{category}'],
+                [$min_total, $total_in_category, $category],
+                $msg_total
+            );
         }
 
         if (defined('DOING_AJAX') && DOING_AJAX) {
@@ -464,8 +516,8 @@ function seedling_limiter_activate(): void
         'woo_seedling_category_slug' => 'seedling',
         'woo_seedling_min_variation' => 5,
         'woo_seedling_min_total'     => 20,
-        'woo_seedling_msg_variation' => 'Минимальное количество для {name} ({attr}) — {min} шт. Сейчас — {current}.',
-        'woo_seedling_msg_total'     => 'Общее количество товаров из категории должно быть не менее {min}. Сейчас — {current}.',
+        'woo_seedling_msg_variation' => Seedling_Limiter::DEFAULT_MSG_VARIATION,
+        'woo_seedling_msg_total'     => Seedling_Limiter::DEFAULT_MSG_TOTAL,
     ];
 
     foreach ($defaults as $option => $value) {
