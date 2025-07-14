@@ -2,7 +2,7 @@
 /**
  * Plugin Name: WooCommerce Seedling Quantity Limiter
  * Description: Ограничения на количество товаров из категории: минимум на вариацию и общий минимум по категории.
- * Version: 1.6
+ * Version: 1.7
  * Author: Дмитрий Анисимов
  */
 
@@ -59,6 +59,11 @@ class Seedling_Limiter
 
         add_action('wp_enqueue_scripts', [$this, 'enqueue_product_script']);
         add_action('wp_enqueue_scripts', [$this, 'enqueue_cart_script']);
+        add_action('wp_enqueue_scripts', [$this, 'enqueue_mini_cart_script']);
+        add_action('wp_enqueue_scripts', [$this, 'enqueue_cart_limit_script']);
+
+        add_filter('woocommerce_cart_item_class', [$this, 'mark_cart_item'], 10, 3);
+        add_action('woocommerce_after_cart_item_quantity_update', [$this, 'enforce_cart_item_min'], 10, 4);
     }
 
     /**
@@ -550,13 +555,29 @@ class Seedling_Limiter
      * Checks whether the mini cart should be considered active.
      *
      * SRP: определяет наличие мини-корзины на сайте.
-     * Позволяет расширять логику через фильтр 'seedling_limiter_has_mini_cart'.
+     * Метод проверяет стандартный виджет WooCommerce и DOM‑хуки популярных тем
+     * (например, `mfn-ch-footer-buttons`). Позволяет расширять логику через
+     * фильтр 'seedling_limiter_has_mini_cart'.
      */
     private function has_mini_cart(): bool
     {
+        // Проверяем стандартный виджет WooCommerce.
         $active_widget = is_active_widget(false, false, 'woocommerce_widget_cart', true);
 
-        return (bool) apply_filters('seedling_limiter_has_mini_cart', $active_widget);
+        // DOM-хуки популярных тем для вывода мини‑корзины.
+        $theme_hooks = ['mfn-ch-footer-buttons'];
+        $hook_found  = false;
+
+        foreach ($theme_hooks as $hook) {
+            if (has_action($hook)) {
+                $hook_found = true;
+                break;
+            }
+        }
+
+        $detected = $active_widget || $hook_found;
+
+        return (bool) apply_filters('seedling_limiter_has_mini_cart', $detected);
     }
 
     /**
@@ -589,6 +610,108 @@ class Seedling_Limiter
                 'nonce'   => wp_create_nonce(self::NONCE_ACTION),
             ]
         );
+    }
+
+    /**
+     * Подключает скрипт ограничения количества в мини‑корзине.
+     *
+     * SRP: загружает seedling-mini-cart-limit.js и передает настройки.
+     */
+    public function enqueue_mini_cart_script(): void
+    {
+        if (!$this->has_mini_cart()) {
+            return;
+        }
+
+        wp_enqueue_script(
+            'seedling-mini-cart-limit',
+            plugin_dir_url(__FILE__) . 'assets/js/seedling-mini-cart-limit.js',
+            ['jquery'],
+            null,
+            true
+        );
+
+        wp_localize_script(
+            'seedling-mini-cart-limit',
+            'seedlingMiniCartSettings',
+            [
+                'minQty' => (int) get_option('woo_seedling_min_variation', 5),
+                'slug'   => get_option('woo_seedling_category_slug', 'seedling'),
+            ]
+        );
+    }
+
+    /**
+     * Подключает скрипт ограничения количества на странице корзины.
+     *
+     * SRP: загружает seedling-cart-limit.js только на странице корзины.
+     */
+    public function enqueue_cart_limit_script(): void
+    {
+        if (!is_cart()) {
+            return;
+        }
+
+        wp_enqueue_script(
+            'seedling-cart-limit',
+            plugin_dir_url(__FILE__) . 'assets/js/seedling-cart-limit.js',
+            ['jquery'],
+            null,
+            true
+        );
+
+        wp_localize_script(
+            'seedling-cart-limit',
+            'seedlingCartLimitSettings',
+            [
+                'minQty' => (int) get_option('woo_seedling_min_variation', 5),
+            ]
+        );
+    }
+    /**
+     * Отмечает элементы корзины специальным классом при совпадении категории.
+     *
+     * SRP: только добавляет CSS‑класс без изменения других данных.
+     */
+    public function mark_cart_item(array $classes, array $cart_item, string $cart_item_key): array
+    {
+        $slug = get_option('woo_seedling_category_slug', 'seedling');
+        if (has_term($slug, 'product_cat', $cart_item['product_id'])) {
+            $classes[] = 'seedling-category-item';
+        }
+
+        return $classes;
+    }
+
+    /**
+     * Принудительно устанавливает минимальное количество при обновлении.
+     *
+     * SRP: проверяет количество и корректирует его через WC_Cart.
+     */
+    public function enforce_cart_item_min(string $cart_item_key, int $quantity, int $old_quantity, WC_Cart $cart): void
+    {
+        $slug = get_option('woo_seedling_category_slug', 'seedling');
+        $min  = (int) get_option('woo_seedling_min_variation', 5);
+
+        $item = $cart->cart_contents[$cart_item_key] ?? null;
+        if (!$item || !has_term($slug, 'product_cat', $item['product_id'])) {
+            return;
+        }
+
+        if ($quantity < $min) {
+            $cart->set_quantity($cart_item_key, $min);
+
+            $variation = $item['variation_id'] ? wc_get_product($item['variation_id']) : null;
+            $name      = $variation ? $variation->get_name() : '';
+            $attrs     = $variation instanceof WC_Product_Variation ? $this->format_variation_attributes($variation) : '';
+            $message   = str_replace(
+                ['{min}', '{name}', '{attr}', '{current}'],
+                [$min, $name, $attrs, $quantity],
+                $this->get_variation_template()
+            );
+
+            wc_add_notice($message, 'error');
+        }
     }
 }
 
