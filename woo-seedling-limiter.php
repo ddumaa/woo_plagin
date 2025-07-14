@@ -484,11 +484,17 @@ class Seedling_Limiter
     }
 
     /**
-     * Добавляет минимальное количество в данные вариации.
+     * Добавляет минимальное количество в массив данных вариации.
      *
      * SRP: подготавливает значения для JavaScript, не меняя логику WooCommerce.
+     *
+     * @param array                 $data      Данные вариации, которые будет получать скрипт.
+     * @param WC_Product            $parent    Родительский товар‑переменный продукт.
+     * @param WC_Product_Variation  $variation Объект конкретной вариации.
+     *
+     * @return array Обновлённый массив данных для вывода на фронтенде.
      */
-    public function update_available_variation(array $data, WC_Product_Variation $variation, WC_Product $parent): array
+    public function update_available_variation(array $data, WC_Product $parent, WC_Product_Variation $variation): array
     {
         $slug = get_option('woo_seedling_category_slug', 'seedling');
         if (!has_term($slug, 'product_cat', $parent->get_id())) {
