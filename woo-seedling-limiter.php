@@ -53,6 +53,8 @@ class Seedling_Limiter
 
         add_action('wp_ajax_seedling_get_cart_qty', [$this, 'get_cart_qty']);
         add_action('wp_ajax_nopriv_seedling_get_cart_qty', [$this, 'get_cart_qty']);
+        add_filter('woocommerce_quantity_input_args', [$this, 'update_quantity_args'], 10, 2);
+        add_filter('woocommerce_available_variation', [$this, 'update_available_variation'], 10, 3);
 
 
         add_action('wp_enqueue_scripts', [$this, 'enqueue_product_script']);
@@ -283,6 +285,28 @@ class Seedling_Limiter
     }
 
     /**
+     * Возвращает текущее количество выбранной вариации в корзине.
+     *
+     * SRP: подсчитывает только количество и ничем более.
+     * Используется другими методами для расчёта ограничений.
+     *
+     * @param int $variation_id ID вариации товара.
+     *
+     * @return int Сумма количества в корзине.
+     */
+    private function get_variation_cart_quantity(int $variation_id): int
+    {
+        $qty = 0;
+        foreach (WC()->cart->get_cart() as $item) {
+            if ((int) $item['variation_id'] === $variation_id) {
+                $qty += (int) $item['quantity'];
+            }
+        }
+
+        return $qty;
+    }
+
+    /**
      * Validates adding a product variation to the cart.
      *
      * SRP: проверяет минимальное количество для выбранной вариации.
@@ -423,16 +447,64 @@ class Seedling_Limiter
             wp_send_json_error(['message' => 'Invalid or missing variation_id']);
         }
 
-        $sum = 0;
-
-        // Подсчитываем сумму по всем позициям корзины для этой вариации
-        foreach (WC()->cart->get_cart() as $item) {
-            if ((int) $item['variation_id'] === $variation_id) {
-                $sum += (int) $item['quantity'];
-            }
-        }
+        $sum = $this->get_variation_cart_quantity($variation_id);
 
         wp_send_json_success(['quantity' => $sum]);
+    }
+
+    /**
+     * Модифицирует параметры поля количества на странице товара.
+     *
+     * SRP: вычисляет минимально допустимое значение без влияния
+     * на вывод интерфейса.
+     */
+    public function update_quantity_args(array $args, WC_Product $product): array
+    {
+        $slug = get_option('woo_seedling_category_slug', 'seedling');
+        $min  = (int) get_option('woo_seedling_min_variation', 5);
+
+        $parent_id = $product instanceof WC_Product_Variation
+            ? $product->get_parent_id()
+            : $product->get_id();
+
+        if (!has_term($slug, 'product_cat', $parent_id)) {
+            return $args;
+        }
+
+        $variation_id = $product instanceof WC_Product_Variation ? $product->get_id() : 0;
+        $current      = $variation_id ? $this->get_variation_cart_quantity($variation_id) : 0;
+        $minimum      = max($min - $current, 1);
+
+        if ($minimum > 1) {
+            $args['min_value']   = $minimum;
+            $args['input_value'] = $minimum;
+        }
+
+        return $args;
+    }
+
+    /**
+     * Добавляет минимальное количество в данные вариации.
+     *
+     * SRP: подготавливает значения для JavaScript, не меняя логику WooCommerce.
+     */
+    public function update_available_variation(array $data, WC_Product_Variation $variation, WC_Product $parent): array
+    {
+        $slug = get_option('woo_seedling_category_slug', 'seedling');
+        if (!has_term($slug, 'product_cat', $parent->get_id())) {
+            return $data;
+        }
+
+        $min     = (int) get_option('woo_seedling_min_variation', 5);
+        $current = $this->get_variation_cart_quantity($variation->get_id());
+        $minimum = max($min - $current, 1);
+
+        if ($minimum > 1) {
+            $data['min_qty']    = $minimum;
+            $data['input_value'] = $minimum;
+        }
+
+        return $data;
     }
 
     /**
