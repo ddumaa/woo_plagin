@@ -550,13 +550,29 @@ class Seedling_Limiter
      * Checks whether the mini cart should be considered active.
      *
      * SRP: определяет наличие мини-корзины на сайте.
-     * Позволяет расширять логику через фильтр 'seedling_limiter_has_mini_cart'.
+     * Метод проверяет стандартный виджет WooCommerce и DOM‑хуки популярных тем
+     * (например, `mfn-ch-footer-buttons`). Позволяет расширять логику через
+     * фильтр 'seedling_limiter_has_mini_cart'.
      */
     private function has_mini_cart(): bool
     {
+        // Проверяем стандартный виджет WooCommerce.
         $active_widget = is_active_widget(false, false, 'woocommerce_widget_cart', true);
 
-        return (bool) apply_filters('seedling_limiter_has_mini_cart', $active_widget);
+        // DOM-хуки популярных тем для вывода мини‑корзины.
+        $theme_hooks = ['mfn-ch-footer-buttons'];
+        $hook_found  = false;
+
+        foreach ($theme_hooks as $hook) {
+            if (has_action($hook)) {
+                $hook_found = true;
+                break;
+            }
+        }
+
+        $detected = $active_widget || $hook_found;
+
+        return (bool) apply_filters('seedling_limiter_has_mini_cart', $detected);
     }
 
     /**
