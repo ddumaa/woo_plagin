@@ -108,22 +108,26 @@ document.addEventListener('DOMContentLoaded', function () {
             });
     }
 
-    // Пересчитываем минимальное значение при смене вариации
-    variationForm.addEventListener('woocommerce_variation_select_change', () => {
-        // variation_id ещё может быть не установлен
-        setTimeout(checkAndUpdateQuantity, 100);
-    });
+    // Пересчитываем минимальное значение при смене вариации.
+    // События woocommerce_variation_select_change и found_variation являются
+    // пользовательскими и генерируются через jQuery, поэтому подключаем
+    // обработчики также через jQuery.
+    jQuery(function ($) {
+        $(variationForm).on('woocommerce_variation_select_change', function () {
+            // variation_id ещё может быть не установлен
+            setTimeout(checkAndUpdateQuantity, 100);
+        });
 
-    // Проверяем количество сразу после выбора вариации WooCommerce
-    variationForm.addEventListener('found_variation', function (e) {
-        const variation = e.detail?.variation || e.detail;
-        const variationId = variation?.variation_id;
+        // Проверяем количество сразу после выбора вариации WooCommerce
+        $(variationForm).on('found_variation', function (event, variation) {
+            const variationId = variation?.variation_id;
 
-        if (!variationId) return;
+            if (!variationId) return;
 
-        // WooCommerce может установить значение позже, поэтому подстрахуемся
-        variationIdInput.value = variationId;
-        checkAndUpdateQuantity();
+            // WooCommerce может установить значение позже, поэтому подстрахуемся
+            variationIdInput.value = variationId;
+            checkAndUpdateQuantity();
+        });
     });
 
     // Выполним проверку сразу при загрузке страницы,
