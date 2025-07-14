@@ -42,6 +42,30 @@ document.addEventListener('DOMContentLoaded', function () {
     let boundMinusBtn = null;
 
     /**
+     * Binds event listeners to the quantity input and minus button.
+     *
+     * SRP: отвечает только за присоединение обработчиков для поля
+     * количества и кнопки уменьшения.
+     */
+    function attachQtyListeners() {
+        const input = getQtyInput();
+        if (input) {
+            input.removeEventListener('input', handleQtyInput);
+            input.addEventListener('input', handleQtyInput);
+        }
+
+        const minusBtn = document.querySelector('.quantity .minus');
+        if (boundMinusBtn && boundMinusBtn !== minusBtn) {
+            boundMinusBtn.removeEventListener('click', handleMinusClick);
+        }
+        if (minusBtn) {
+            minusBtn.removeEventListener('click', handleMinusClick);
+            minusBtn.addEventListener('click', handleMinusClick);
+            boundMinusBtn = minusBtn;
+        }
+    }
+
+    /**
      * Обработчик ввода в поле количества.
      * Следит за тем, чтобы значение не было меньше заданного минимума.
      */
@@ -112,7 +136,14 @@ document.addEventListener('DOMContentLoaded', function () {
     function checkAndUpdateQuantity() {
         const variationInput = getVariationIdInput();
         const variationId = parseInt(variationInput?.value || '0');
-        if (!variationId) return;
+        if (!variationId) {
+            // Когда вариация не выбрана, применяем базовый минимум
+            enforcedMin = min;
+            applyQty(enforcedMin);
+            attachQtyListeners();
+            updateMinusButtonState();
+            return;
+        }
 
         const url = `${seedlingProductSettings.ajaxUrl}?action=seedling_get_cart_qty&variation_id=${variationId}&nonce=${seedlingProductSettings.nonce}`;
         fetch(url, { credentials: 'same-origin' })
@@ -124,22 +155,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 applyQty(enforcedMin);
 
-                // Обновляем обработчики для текущего поля количества.
-                const input = getQtyInput();
-                if (input) {
-                    input.removeEventListener('input', handleQtyInput);
-                    input.addEventListener('input', handleQtyInput);
-                }
-
-                const minusBtn = document.querySelector('.quantity .minus');
-                if (boundMinusBtn && boundMinusBtn !== minusBtn) {
-                    boundMinusBtn.removeEventListener('click', handleMinusClick);
-                }
-                if (minusBtn) {
-                    minusBtn.removeEventListener('click', handleMinusClick);
-                    minusBtn.addEventListener('click', handleMinusClick);
-                    boundMinusBtn = minusBtn;
-                }
+                // Подключаем обработчики после изменения количества
+                // и обновляем состояние кнопки
+                attachQtyListeners();
                 updateMinusButtonState();
             });
     }
