@@ -10,9 +10,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const body = document.body;
     // Основная форма выбора вариаций
     const variationForm = document.querySelector('form.variations_form');
-    // Поле ввода количества товара
-    const qtyInput = document.querySelector('input.qty');
-    // Скрытое поле с выбранной вариацией
+    // Скрытое поле с выбранной вариацией. Обычно существует всегда,
+    // но значение заполняется после выбора вариации.
     const variationIdInput = document.querySelector('input[name="variation_id"]');
 
     // Проверяем, существует ли форма выбора вариации. Если её нет,
@@ -23,7 +22,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (!body.classList.contains(`product_cat-${slug}`)) return;
 
-    if (!qtyInput || !variationIdInput) return;
+    // Поддержка тем, где поле количества создаётся динамически.
+    // Поэтому не завершаем выполнение скрипта, если его нет в DOM прямо сейчас.
+    // Метод ищет поле при каждом обращении, что соответствует принципу SRP:
+    // функция занимается только поиском элемента в DOM.
+    function getQtyInput() {
+        return document.querySelector('input.qty');
+    }
+    if (!variationIdInput) return;
 
     // Фактический минимум, разрешённый в поле количества.
     // Значение изменяется функцией checkAndUpdateQuantity.
@@ -37,8 +43,10 @@ document.addEventListener('DOMContentLoaded', function () {
      * Следит за тем, чтобы значение не было меньше заданного минимума.
      */
     function handleQtyInput() {
-        if (parseInt(qtyInput.value || '0') < enforcedMin) {
-            qtyInput.value = enforcedMin;
+        const input = getQtyInput();
+        if (!input) return;
+        if (parseInt(input.value || '0') < enforcedMin) {
+            input.value = enforcedMin;
         }
         updateMinusButtonState();
     }
@@ -49,8 +57,10 @@ document.addEventListener('DOMContentLoaded', function () {
      */
     function handleMinusClick() {
         setTimeout(() => {
-            if (parseInt(qtyInput.value || '0') < enforcedMin) {
-                qtyInput.value = enforcedMin;
+            const input = getQtyInput();
+            if (!input) return;
+            if (parseInt(input.value || '0') < enforcedMin) {
+                input.value = enforcedMin;
             }
             updateMinusButtonState();
         }, 100);
@@ -62,7 +72,9 @@ document.addEventListener('DOMContentLoaded', function () {
      */
     function updateMinusButtonState() {
         if (!boundMinusBtn) return;
-        const qty = parseInt(qtyInput.value || '0');
+        const input = getQtyInput();
+        if (!input) return;
+        const qty = parseInt(input.value || '0');
         if (qty <= enforcedMin) {
             boundMinusBtn.disabled = true;
             boundMinusBtn.classList.add('disabled');
@@ -82,9 +94,11 @@ document.addEventListener('DOMContentLoaded', function () {
      * @param {number} value Минимально допустимое количество.
      */
     function applyQty(value) {
-        qtyInput.value = value;
-        qtyInput.min = value;
-        qtyInput.dispatchEvent(new Event('change', { bubbles: true }));
+        const input = getQtyInput();
+        if (!input) return;
+        input.value = value;
+        input.min = value;
+        input.dispatchEvent(new Event('change', { bubbles: true }));
     }
 
     /**
@@ -96,7 +110,8 @@ document.addEventListener('DOMContentLoaded', function () {
         const variationId = parseInt(variationIdInput.value || '0');
         if (!variationId) return;
 
-        fetch(`/wp-admin/admin-ajax.php?action=seedling_get_cart_qty&variation_id=${variationId}&nonce=${seedlingProductSettings.nonce}`, { credentials: 'same-origin' })
+        const url = `${seedlingProductSettings.ajaxUrl}?action=seedling_get_cart_qty&variation_id=${variationId}&nonce=${seedlingProductSettings.nonce}`;
+        fetch(url, { credentials: 'same-origin' })
             .then(r => r.json())
             .then(data => {
                 if (!data.success) return;
@@ -105,9 +120,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 applyQty(enforcedMin);
 
-                // Обновляем обработчики, чтобы избежать дублирования при смене вариаций.
-                qtyInput.removeEventListener('input', handleQtyInput);
-                qtyInput.addEventListener('input', handleQtyInput);
+                // Обновляем обработчики для текущего поля количества.
+                const input = getQtyInput();
+                if (input) {
+                    input.removeEventListener('input', handleQtyInput);
+                    input.addEventListener('input', handleQtyInput);
+                }
 
                 const minusBtn = document.querySelector('.quantity .minus');
                 if (boundMinusBtn && boundMinusBtn !== minusBtn) {

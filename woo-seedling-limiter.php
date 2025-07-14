@@ -460,9 +460,10 @@ class Seedling_Limiter
             'seedling-product-limit',
             'seedlingProductSettings',
             [
-                'minQty' => (int) get_option('woo_seedling_min_variation', 5),
-                'slug'   => get_option('woo_seedling_category_slug', 'seedling'),
-                'nonce'  => wp_create_nonce(self::NONCE_ACTION),
+                'minQty'  => (int) get_option('woo_seedling_min_variation', 5),
+                'slug'    => get_option('woo_seedling_category_slug', 'seedling'),
+                'nonce'   => wp_create_nonce(self::NONCE_ACTION),
+                'ajaxUrl' => admin_url('admin-ajax.php'),
             ]
         );
     }
