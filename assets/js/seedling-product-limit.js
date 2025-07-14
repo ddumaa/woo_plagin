@@ -159,6 +159,18 @@ document.addEventListener('DOMContentLoaded', function () {
                 // и обновляем состояние кнопки
                 attachQtyListeners();
                 updateMinusButtonState();
+            })
+            .catch(() => {
+                // Если запрос не удался, выводим сообщение и блокируем кнопку
+                // добавления в корзину, чтобы избежать некорректного количества
+                // в заказе.
+                const btn = document.querySelector('.single_add_to_cart_button');
+                if (btn) {
+                    btn.disabled = true;
+                    btn.classList.add('disabled');
+                    btn.setAttribute('aria-disabled', 'true');
+                }
+                console.error('Не удалось получить минимальное количество');
             });
     }
 
