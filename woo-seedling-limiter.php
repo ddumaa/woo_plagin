@@ -786,8 +786,32 @@ function seedling_limiter_activate(): void
     }
 }
 
+/**
+ * Handles plugin uninstallation by removing plugin options.
+ *
+ * SRP: удаляет все настройки плагина, чтобы не оставлять данные в базе.
+ */
+function seedling_limiter_uninstall(): void
+{
+    $options = [
+        'woo_seedling_category_slug',
+        'woo_seedling_min_variation',
+        'woo_seedling_min_total',
+        'woo_seedling_msg_variation',
+        'woo_seedling_msg_total',
+    ];
+
+    foreach ($options as $option) {
+        delete_option($option);
+    }
+}
+
 
 // Регистрация хука активации плагина. Привязываем его к функции
 // seedling_limiter_activate(), чтобы WordPress сделал необходимые действия
 // сразу после активации плагина.
 register_activation_hook(__FILE__, 'seedling_limiter_activate');
+
+// Регистрация хука удаления плагина. Привязываем его к функции
+// seedling_limiter_uninstall(), чтобы при удалении опции были очищены.
+register_uninstall_hook(__FILE__, 'seedling_limiter_uninstall');
