@@ -7,6 +7,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const min = seedlingProductSettings.minQty;
     // Слаг категории, для которой действует ограничение
     const slug = seedlingProductSettings.slug;
+    // Шаг изменения количества
+    const step = seedlingProductSettings.step || 1;
     const body = document.body;
     // Основная форма выбора вариаций
     const variationForm = document.querySelector('form.variations_form');
@@ -74,6 +76,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (input) {
             input.removeEventListener('input', handleQtyInput);
             input.addEventListener('input', handleQtyInput);
+            input.step = step;
         }
 
         const minusBtn = document.querySelector('.quantity .minus');
@@ -94,9 +97,14 @@ document.addEventListener('DOMContentLoaded', function () {
     function handleQtyInput() {
         const input = getQtyInput();
         if (!input) return;
-        if (parseInt(input.value || '0') < enforcedMin) {
-            input.value = enforcedMin;
+        let val = parseInt(input.value || '0');
+        if (val < enforcedMin) {
+            val = enforcedMin;
         }
+        if (val % step !== 0) {
+            val = Math.ceil(val / step) * step;
+        }
+        input.value = val;
         updateMinusButtonState();
     }
 
@@ -108,9 +116,14 @@ document.addEventListener('DOMContentLoaded', function () {
         setTimeout(() => {
             const input = getQtyInput();
             if (!input) return;
-            if (parseInt(input.value || '0') < enforcedMin) {
-                input.value = enforcedMin;
+            let val = parseInt(input.value || '0');
+            if (val < enforcedMin) {
+                val = enforcedMin;
             }
+            if (val % step !== 0) {
+                val = Math.ceil(val / step) * step;
+            }
+            input.value = val;
             updateMinusButtonState();
         }, 100);
     }
@@ -124,7 +137,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const input = getQtyInput();
         if (!input) return;
         const qty = parseInt(input.value || '0');
-        if (qty <= enforcedMin) {
+        if (qty - step < enforcedMin) {
             boundMinusBtn.disabled = true;
             boundMinusBtn.classList.add('disabled');
             boundMinusBtn.setAttribute('aria-disabled', 'true');
@@ -147,6 +160,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!input) return;
         input.value = value;
         input.min = value;
+        input.step = step;
         input.dispatchEvent(new Event('change', { bubbles: true }));
     }
 
