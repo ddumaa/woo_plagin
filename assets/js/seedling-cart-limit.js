@@ -2,6 +2,7 @@
 // Аналогичен mini-cart-limit.js, но работает на странице корзины.
 document.addEventListener('DOMContentLoaded', function () {
     const min = seedlingCartLimitSettings.minQty;
+    const step = seedlingCartLimitSettings.step || 1;
 
     /**
      * Обновляет состояние конкретной строки корзины.
@@ -12,17 +13,23 @@ document.addEventListener('DOMContentLoaded', function () {
     function processItem(item) {
         const qtyInput = item.querySelector('input.qty');
         const minusBtn = item.querySelector('.quantity .minus');
+        if (qtyInput) {
+            qtyInput.step = step;
+        }
 
         function enforce() {
             if (qtyInput) {
                 let val = parseInt(qtyInput.value || '0');
                 if (val < min) {
                     val = min;
-                    qtyInput.value = val;
-                    qtyInput.dispatchEvent(new Event('change', { bubbles: true }));
                 }
+                if (val % step !== 0) {
+                    val = Math.ceil(val / step) * step;
+                }
+                qtyInput.value = val;
+                qtyInput.dispatchEvent(new Event('change', { bubbles: true }));
                 if (minusBtn) {
-                    if (val <= min) {
+                    if (val - step < min) {
                         minusBtn.disabled = true;
                         minusBtn.classList.add('disabled');
                         minusBtn.setAttribute('aria-disabled', 'true');

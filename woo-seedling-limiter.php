@@ -29,6 +29,11 @@ class Seedling_Limiter
     public const DEFAULT_MSG_TOTAL = 'Общее количество товаров из категории {category} должно быть не менее {min}. Сейчас — {current}.';
 
     /**
+     * Шаг изменения количества по умолчанию.
+     */
+    public const STEP = 5;
+
+    /**
      * Значения по умолчанию для настроек плагина.
      */
     private const DEFAULT_CATEGORY_SLUG  = 'seedling';
@@ -45,6 +50,8 @@ class Seedling_Limiter
     private string $msg_variation = '';
     /** @var string Сообщение для всей категории. */
     private string $msg_total = '';
+    /** @var int Шаг изменения количества. */
+    private int $step = self::STEP;
 
     /**
      * Загружает значения настроек из базы данных в свойства.
@@ -394,6 +401,7 @@ class Seedling_Limiter
     {
         $slug    = $this->category_slug;
         $min_qty = $this->min_variation;
+        $step    = $this->step;
         // Пятый аргумент $variations присутствует для совместимости с фильтром,
         // но логика метода не зависит от его содержимого.
         if (!$variation_id) {
@@ -401,6 +409,18 @@ class Seedling_Limiter
         }
         if (!has_term($slug, 'product_cat', $product_id)) {
             return $passed;
+        }
+
+        // Проверяем кратность количества установленному шагу.
+        if ($quantity % $step !== 0) {
+            wc_add_notice(
+                sprintf(
+                    'Количество должно быть кратно %d.',
+                    $step
+                ),
+                'error'
+            );
+            return false;
         }
 
         $current_qty = 0;
@@ -574,6 +594,7 @@ class Seedling_Limiter
     {
         $slug = $this->category_slug;
         $min  = $this->min_variation;
+        $step = $this->step;
 
         $parent_id = $product instanceof WC_Product_Variation
             ? $product->get_parent_id()
@@ -591,6 +612,9 @@ class Seedling_Limiter
             $args['min_value']   = $minimum;
             $args['input_value'] = $minimum;
         }
+
+        // Передаём шаг изменения количества для фронтенда.
+        $args['step'] = $this->step;
 
         return $args;
     }
@@ -622,6 +646,9 @@ class Seedling_Limiter
             $data['input_value'] = $minimum;
         }
 
+        // Шаг изменения используется на фронтенде при выборе количества.
+        $data['step'] = $this->step;
+
         return $data;
     }
 
@@ -652,6 +679,7 @@ class Seedling_Limiter
             [
                 'minQty'  => $this->min_variation,
                 'slug'    => $this->category_slug,
+                'step'    => $this->step,
                 'nonce'   => wp_create_nonce(self::NONCE_ACTION),
                 'ajaxUrl' => admin_url('admin-ajax.php'),
             ]
@@ -744,6 +772,7 @@ class Seedling_Limiter
             [
                 'minQty' => $this->min_variation,
                 'slug'   => $this->category_slug,
+                'step'   => $this->step,
             ]
         );
     }
@@ -772,6 +801,7 @@ class Seedling_Limiter
             'seedlingCartLimitSettings',
             [
                 'minQty' => $this->min_variation,
+                'step'   => $this->step,
             ]
         );
     }
@@ -806,27 +836,31 @@ class Seedling_Limiter
     {
         $slug = $this->category_slug;
         $min  = $this->min_variation;
+        $step = $this->step;
 
         $item = $cart->cart_contents[$cart_item_key] ?? null;
         if (!$item || !has_term($slug, 'product_cat', $item['product_id'])) {
             return;
         }
 
-        if ($quantity < $min) {
-            $cart->set_quantity($cart_item_key, $min);
+        $new_qty = $quantity;
+        if ($new_qty < $min) {
+            $new_qty = $min;
+        }
+        if ($new_qty % $step !== 0) {
+            $new_qty = (int) ceil($new_qty / $step) * $step;
+        }
+
+        if ($new_qty !== $quantity) {
+            $cart->set_quantity($cart_item_key, $new_qty);
 
             $variation = $item['variation_id'] ? wc_get_product($item['variation_id']) : null;
             $name      = $variation ? $variation->get_name() : '';
             $attrs     = $variation instanceof WC_Product_Variation ? $this->format_variation_attributes($variation) : '';
-            $message   = str_replace(
-                ['{min}', '{name}', '{attr}', '{current}'],
-                [
-                    $this->wrap_strong($min),
-                    $this->wrap_strong($name),
-                    $this->wrap_strong($attrs),
-                    $this->wrap_strong($quantity),
-                ],
-                $this->get_variation_template()
+            $message   = sprintf(
+                '%s: количество скорректировано до %s.',
+                $this->wrap_strong($name),
+                $this->wrap_strong($new_qty)
             );
 
             // Добавляем уведомление только во время обычных запросов (не AJAX), чтобы предотвратить
