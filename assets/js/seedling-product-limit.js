@@ -3,12 +3,13 @@
 // Использует AJAX-метод get_cart_qty из PHP-плагина для расчёта доступного
 // минимума.
 document.addEventListener('DOMContentLoaded', function () {
+    const rule = seedlingProductSettings.rule || {};
     // Минимальное количество для текущей вариации
-    const min = seedlingProductSettings.minQty;
+    const min = rule.minQty;
     // Слаг категории, для которой действует ограничение
-    const slug = seedlingProductSettings.slug;
+    const slug = rule.slug;
     // Шаг изменения количества
-    const step = seedlingProductSettings.step || 1;
+    const step = rule.step || 1;
     const body = document.body;
     // Основная форма выбора вариаций
     const variationForm = document.querySelector('form.variations_form');
