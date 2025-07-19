@@ -301,13 +301,14 @@ class Seedling_Limiter
     /**
      * Санитизирует массив правил из настроек.
      * Каждый корректный элемент превращается в нормализованный массив.
+     *
+     * @param array $rules Массив правил из формы настроек.
+     *
+     * @return array Список нормализованных правил.
      */
-    public function sanitize_rules($rules): array
+    public function sanitize_rules(array $rules): array
     {
         $out = [];
-        if (!is_array($rules)) {
-            return $out;
-        }
 
         foreach ($rules as $rule) {
             if (!is_array($rule)) {
@@ -459,7 +460,13 @@ class Seedling_Limiter
      *
      * @return bool Whether the add to cart action is allowed.
      */
-    public function validate_add_to_cart($passed, $product_id, $quantity, $variation_id = null, $variations = [])
+    public function validate_add_to_cart(
+        bool $passed,
+        int $product_id,
+        int $quantity,
+        ?int $variation_id = null,
+        array $variations = []
+    ): bool
     {
         // Пятый аргумент $variations присутствует для совместимости с фильтром,
         // но логика метода не зависит от его содержимого.
