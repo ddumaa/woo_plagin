@@ -1,10 +1,10 @@
 # WooCommerce Seedling Quantity Limiter
 
-WooCommerce Seedling Quantity Limiter enforces minimum order quantities for products from a specific category. The plugin is written with SOLID principles in mind and heavily commented to ease maintenance.
+WooCommerce Seedling Quantity Limiter enforces minimum order quantities for products from selected categories. The plugin is written with SOLID principles in mind and heavily commented to ease maintenance.
 
 ## Features
 - Set a minimum quantity for each product variation.
-- Require a minimum total quantity across a chosen category.
+- Require a minimum total quantity across chosen categories.
 - Display customizable warning messages on product, cart and checkout pages.
 - JavaScript integrations to enforce limits on product pages, the cart and mini cart.
 - Admin settings page under **WooCommerce → Ограничения товаров**.
@@ -15,11 +15,13 @@ WooCommerce Seedling Quantity Limiter enforces minimum order quantities for prod
 3. Configure options on the plugin settings page.
 
 ## Available Settings
-- **Слаг категории** (`woo_seedling_category_slug`) – slug of the product category to monitor.
-- **Минимум на вариацию** (`woo_seedling_min_variation`) – minimum quantity required per variation.
-- **Общий минимум по категории** (`woo_seedling_min_total`) – total minimum across all variations in the category.
-- **Сообщение для вариации** (`woo_seedling_msg_variation`) – template shown when a single variation is below the minimum.
-- **Сообщение для категории** (`woo_seedling_msg_total`) – template for when the whole category total is below the limit.
+- **Правила** (`woo_seedling_rules`) – array of rule blocks. Each rule contains:
+  - `slug` – product category slug to monitor.
+  - `min_variation` – minimum quantity per variation.
+  - `min_total` – overall minimum within the category.
+  - `msg_variation` – message shown when a variation is below the minimum.
+  - `msg_total` – message shown when the category total is too low.
+  - `step` – quantity step increment.
 
 ## Development Notes
 Source scripts live in `assets/js`. Minified files with the `.min.js` suffix are included for production. When changing a script, regenerate its minified counterpart using any preferred tool, for example:
