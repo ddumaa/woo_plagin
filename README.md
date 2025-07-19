@@ -32,6 +32,8 @@ Source scripts live in `assets/js`. Minified files with the `.min.js` suffix are
 npm install --global terser
 terser assets/js/seedling-product-limit.js -o assets/js/seedling-product-limit.min.js -c -m
 terser assets/js/seedling-cart-validation.js -o assets/js/seedling-cart-validation.min.js -c -m
+terser assets/js/seedling-cart-limit.js -o assets/js/seedling-cart-limit.min.js -c -m
+terser assets/js/seedling-mini-cart-limit.js -o assets/js/seedling-mini-cart-limit.min.js -c -m
 ```
 
 Ensure minified files stay in sync with their sources before committing.
