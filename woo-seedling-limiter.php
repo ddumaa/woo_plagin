@@ -40,11 +40,6 @@ class Seedling_Limiter
     private const DEFAULT_MIN_VARIATION  = 5;
     private const DEFAULT_MIN_TOTAL      = 20;
 
-    /**
-     * Глобальный шаг изменения количества, загружаемый из опций.
-     * Используется как значение по умолчанию для всех правил.
-     */
-    private int $step = self::STEP;
 
     /**
      * Правила ограничения, загруженные из опций.
@@ -61,8 +56,7 @@ class Seedling_Limiter
      */
     private function load_options(): void
     {
-        // Глобальный шаг изменения количества
-        $this->step = (int) get_option('woo_seedling_step', self::STEP);
+        // Получаем массив правил из базы данных
 
         $stored = get_option('woo_seedling_rules');
 
@@ -79,7 +73,8 @@ class Seedling_Limiter
                 'min_total'      => get_option('woo_seedling_min_total', self::DEFAULT_MIN_TOTAL),
                 'msg_variation'  => get_option('woo_seedling_msg_variation', ''),
                 'msg_total'      => get_option('woo_seedling_msg_total', ''),
-                'step'           => $this->step,
+                // По умолчанию используем базовый шаг
+                'step'           => self::STEP,
             ])
         ];
     }
@@ -99,7 +94,8 @@ class Seedling_Limiter
             'min_total'     => (int) ($rule['min_total'] ?? self::DEFAULT_MIN_TOTAL),
             'msg_variation' => $this->sanitize_multiline_text((string) ($rule['msg_variation'] ?? '')),
             'msg_total'     => $this->sanitize_multiline_text((string) ($rule['msg_total'] ?? '')),
-            'step'          => (int) ($rule['step'] ?? $this->step),
+            // Если шаг не задан, используется значение по умолчанию
+            'step'          => (int) ($rule['step'] ?? self::STEP),
         ];
     }
 
@@ -120,7 +116,6 @@ class Seedling_Limiter
 
         // Обновляем свойства после сохранения настроек.
         add_action('update_option_woo_seedling_rules', [$this, 'load_options']);
-        add_action('update_option_woo_seedling_step', [$this, 'load_options']);
 
         add_filter(
             'woocommerce_add_to_cart_validation',
@@ -225,12 +220,6 @@ class Seedling_Limiter
             ['sanitize_callback' => [$this, 'sanitize_rules']]
         );
 
-        register_setting(
-            'woo_seedling_limit_settings',
-            'woo_seedling_step',
-            ['sanitize_callback' => 'absint', 'default' => self::STEP]
-        );
-
         add_settings_section('woo_seedling_main', 'Основные настройки', null, 'woo-seedling-limit');
 
         add_settings_field(
@@ -241,13 +230,6 @@ class Seedling_Limiter
             'woo_seedling_main'
         );
 
-        add_settings_field(
-            'woo_seedling_step',
-            'Шаг изменения количества',
-            [$this, 'render_step_field'],
-            'woo-seedling-limit',
-            'woo_seedling_main'
-        );
     }
 
     /**
@@ -271,16 +253,6 @@ class Seedling_Limiter
     }
 
     /**
-     * Выводит поле глобального шага на странице настроек.
-     * Значение используется по умолчанию для всех правил.
-     */
-    public function render_step_field(): void
-    {
-        $value = esc_attr($this->step);
-        echo "<input type=\"number\" min=\"1\" name=\"woo_seedling_step\" value=\"{$value}\">";
-    }
-
-    /**
      * Возвращает HTML одного блока правил.
      *
      * @param int|string $index Индекс правила в массиве.
@@ -293,7 +265,7 @@ class Seedling_Limiter
         $minTotal      = esc_attr($rule['min_total'] ?? self::DEFAULT_MIN_TOTAL);
         $msgVar        = esc_attr($rule['msg_variation'] ?? '');
         $msgTotal      = esc_attr($rule['msg_total'] ?? '');
-        $step          = esc_attr($rule['step'] ?? $this->step);
+        $step          = esc_attr($rule['step'] ?? self::STEP);
 
         ob_start();
         ?>
@@ -1026,9 +998,6 @@ function seedling_limiter_activate(): void
         add_option('woo_seedling_rules', [$default_rule]);
     }
 
-    if (get_option('woo_seedling_step') === false) {
-        add_option('woo_seedling_step', Seedling_Limiter::STEP);
-    }
 }
 
 /**
@@ -1039,7 +1008,6 @@ function seedling_limiter_activate(): void
 function seedling_limiter_uninstall(): void
 {
     delete_option('woo_seedling_rules');
-    delete_option('woo_seedling_step');
 }
 
 

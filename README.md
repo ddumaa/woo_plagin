@@ -8,7 +8,7 @@ WooCommerce Seedling Quantity Limiter enforces minimum order quantities for prod
 - Display customizable warning messages on product, cart and checkout pages.
 - JavaScript integrations to enforce limits on product pages, the cart and mini cart.
 - Admin settings page under **WooCommerce → Ограничения товаров**.
-- Configure a global quantity step that applies by default to all rules.
+- Each rule may specify its own quantity step.
 
 ## Installation
 1. Upload the plugin folder to `wp-content/plugins`.
@@ -22,8 +22,7 @@ WooCommerce Seedling Quantity Limiter enforces minimum order quantities for prod
   - `min_total` – overall minimum within the category.
   - `msg_variation` – message shown when a variation is below the minimum.
   - `msg_total` – message shown when the category total is too low.
-  - `step` – quantity step increment.
-  - **Шаг по умолчанию** (`woo_seedling_step`) – default increment for new rules.
+  - `step` – quantity step increment for the rule. If omitted, `Seedling_Limiter::STEP` is used.
 
 ## Development Notes
 Source scripts live in `assets/js`. Minified files with the `.min.js` suffix are included for production. When changing a script, regenerate its minified counterpart using any preferred tool, for example:
