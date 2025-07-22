@@ -1,8 +1,7 @@
 // Скрипт ограничивает уменьшение количества в мини-корзине.
 // Управляет полем количества и кнопкой "минус" для товаров из целевой категории.
 document.addEventListener('DOMContentLoaded', function () {
-    const min = seedlingMiniCartSettings.minQty;
-    const step = seedlingMiniCartSettings.step || 1;
+    const rules = seedlingMiniCartSettings.rules || [];
 
     /**
      * Обновляет состояние конкретного элемента мини-корзины.
@@ -11,6 +10,11 @@ document.addEventListener('DOMContentLoaded', function () {
      * @param {Element} item Элемент с классом seedling-category-item
      */
     function processItem(item) {
+        const slugClass = Array.from(item.classList).find(c => c.startsWith('seedling-category-item-'));
+        const rule = rules.find(r => slugClass && slugClass.endsWith(r.slug));
+        if (!rule) return;
+        const min = rule.minQty;
+        const step = rule.step || 1;
         const qtyInput = item.querySelector('input.qty');
         const minusBtn = item.querySelector('.quantity .minus');
         if (qtyInput) {
