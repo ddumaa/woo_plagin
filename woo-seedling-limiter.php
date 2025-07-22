@@ -566,14 +566,23 @@ class Seedling_Limiter
             $total_in_category    = 0;
 
             foreach (WC()->cart->get_cart() as $item) {
-                $variation_id = $item['variation_id'];
                 $parent_id    = $item['product_id'];
-                if (!$variation_id || !has_term($slug, 'product_cat', $parent_id)) {
+                $variation_id = $item['variation_id'];
+
+                // Пропускаем товар только если он не относится к нужной категории.
+                if (!has_term($slug, 'product_cat', $parent_id)) {
                     continue;
                 }
 
-                $variation_quantities[$variation_id] = ($variation_quantities[$variation_id] ?? 0) + $item['quantity'];
+                // Учитываем общее количество всех подходящих товаров.
                 $total_in_category += $item['quantity'];
+
+                // Количество по вариациям подсчитываем только для вариативных товаров.
+                if ($variation_id) {
+                    $variation_quantities[$variation_id] = (
+                        $variation_quantities[$variation_id] ?? 0
+                    ) + $item['quantity'];
+                }
             }
 
             if ($total_in_category === 0) {
