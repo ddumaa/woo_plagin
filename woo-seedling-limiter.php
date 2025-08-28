@@ -2,7 +2,7 @@
 /**
  * Plugin Name: WooCommerce Seedling Quantity Limiter
  * Description: Ограничения на количество товаров из категории: минимум на вариацию и общий минимум по категории.
- * Version: 1.10
+ * Version: 1.1.1
  * Author: Дмитрий Анисимов
  */
 
