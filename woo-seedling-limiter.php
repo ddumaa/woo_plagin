@@ -683,8 +683,12 @@ class Seedling_Limiter
         $minimum      = max($min - $current, 1);
 
         if ($minimum > 1) {
-            $args['min_value']   = $minimum;
-            $args['input_value'] = $minimum;
+            $args['min_value'] = $minimum;
+            // Если текущее значение меньше минимума, отображаем минимально
+            // допустимое количество, иначе сохраняем фактическое значение.
+            if (($args['input_value'] ?? 0) < $minimum) {
+                $args['input_value'] = $minimum;
+            }
         }
 
         // Передаём шаг изменения количества для фронтенда.
